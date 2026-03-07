@@ -1,0 +1,91 @@
+import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
+import { motion } from 'framer-motion';
+
+const colorMap: Record<string, string> = {
+  'ops-red': 'text-ops-red border-ops-red bg-ops-red/10',
+  'ops-amber': 'text-ops-amber border-ops-amber bg-ops-amber/10',
+  'ops-blue': 'text-ops-blue border-ops-blue bg-ops-blue/10',
+  'ops-green': 'text-ops-green border-ops-green bg-ops-green/10',
+  'ops-cyan': 'text-ops-cyan border-ops-cyan bg-ops-cyan/10',
+};
+
+const credTextColor: Record<string, string> = {
+  'ops-green': 'text-ops-green',
+  'ops-cyan': 'text-ops-cyan',
+  'ops-amber': 'text-ops-amber',
+  'ops-red': 'text-ops-red',
+};
+
+const dotColor: Record<string, string> = {
+  'ops-red': 'bg-ops-red',
+  'ops-amber': 'bg-ops-amber',
+  'ops-blue': 'bg-ops-blue',
+  'ops-green': 'bg-ops-green',
+  'ops-cyan': 'bg-ops-cyan',
+};
+
+interface EventTimelineProps {
+  events: ConflictEvent[];
+  onEventSelect?: (event: ConflictEvent) => void;
+}
+
+export default function EventTimeline({ events, onEventSelect }: EventTimelineProps) {
+  const formatTime = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+        <h2 className="text-[11px] font-bold tracking-widest text-primary glow-text-cyan">EVENT TIMELINE</h2>
+        <span className="text-[10px] text-muted-foreground">{events.length} events</span>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {events.map((event, i) => {
+          const typeConfig = EVENT_TYPE_CONFIG[event.type];
+          const credConfig = CREDIBILITY_CONFIG[event.credibility];
+          const colors = colorMap[typeConfig.color];
+          const dot = dotColor[typeConfig.color];
+
+          return (
+            <motion.button
+              key={event.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => onEventSelect?.(event)}
+              className="w-full text-left p-2 rounded border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex flex-col items-center gap-1 pt-0.5">
+                  <div className={`w-2 h-2 rounded-full ${dot} ${i === 0 ? 'pulse-dot' : ''}`} />
+                  {i < events.length - 1 && <div className="w-px h-6 bg-border" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border ${colors}`}>
+                      {typeConfig.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{formatTime(event.timestamp)}</span>
+                    <span className={`text-[9px] tracking-wider font-medium ${credTextColor[credConfig.color]}`}>
+                      {credConfig.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground mt-1 leading-snug group-hover:text-primary transition-colors truncate">
+                    {event.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-muted-foreground">{event.location.name}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-[10px] text-muted-foreground">{event.source}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
