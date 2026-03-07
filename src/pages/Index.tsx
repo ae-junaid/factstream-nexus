@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import NewsTicker from '@/components/dashboard/NewsTicker';
+import ConflictMap from '@/components/dashboard/ConflictMap';
 import EventTimeline from '@/components/dashboard/EventTimeline';
 import StatsPanel from '@/components/dashboard/StatsPanel';
 import EventDetail from '@/components/dashboard/EventDetail';
@@ -16,9 +17,8 @@ const Index = () => {
       <NewsTicker news={mockNews} />
 
       <div className="flex-1 flex min-h-0">
-        {/* Map placeholder - will add Leaflet separately */}
-        <div className="flex-1 relative bg-secondary/20 flex items-center justify-center">
-          <p className="text-muted-foreground text-xs tracking-widest">MAP LOADING...</p>
+        <div className="flex-1 relative">
+          <ConflictMap events={mockEvents} onEventSelect={setSelectedEvent} />
           <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
         </div>
 
