@@ -100,7 +100,7 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
   return { news, loading, error, refetch: fetchNews };
 }
 
-export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 60000) {
+export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000) {
   const [events, setEvents] = useState<ConflictEvent[]>(getMockEvents(conflict.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
