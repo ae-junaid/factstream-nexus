@@ -3,7 +3,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const EMPTY = { success: true, data: { time: Date.now() / 1000, states: [] }, unavailable: true };
+const ok = (data: unknown) => new Response(
+  JSON.stringify(data),
+  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+
+const EMPTY = { success: true, data: { time: Date.now() / 1000, states: [] } };
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,33 +17,53 @@ Deno.serve(async (req) => {
 
   try {
     const { lamin, lomin, lamax, lomax } = await req.json();
-
     if (lamin == null || lomin == null || lamax == null || lomax == null) {
-      return new Response(JSON.stringify(EMPTY), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return ok(EMPTY);
     }
 
     const centerLat = ((lamin + lamax) / 2).toFixed(2);
     const centerLon = ((lomin + lomax) / 2).toFixed(2);
-    const dist = Math.round(Math.max(lamax - lamin, lomax - lomin) * 55);
+    // Use larger radius to capture more aircraft
+    const dist = Math.round(Math.max(lamax - lamin, lomax - lomin) * 60);
+    const cappedDist = Math.min(dist, 500);
 
-    // Try multiple ADS-B sources
+    // Try OpenSky FIRST (bbox query is more reliable), then adsb.lol as fallback
     const sources = [
-      { name: 'adsb.lol', url: `https://api.adsb.lol/v2/lat/${centerLat}/lon/${centerLon}/dist/${Math.min(dist, 250)}` },
-      { name: 'opensky', url: `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}` },
+      {
+        name: 'opensky',
+        url: `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`,
+        timeout: 15000,
+      },
+      {
+        name: 'adsb.lol',
+        url: `https://api.adsb.lol/v2/lat/${centerLat}/lon/${centerLon}/dist/${cappedDist}`,
+        timeout: 12000,
+      },
+      {
+        name: 'adsbx-rapid',
+        url: `https://adsbexchange-com-adsbx.p.rapidapi.com/v2/lat/${centerLat}/lon/${centerLon}/dist/${Math.min(cappedDist, 250)}/`,
+        timeout: 10000,
+      },
     ];
 
     for (const source of sources) {
-      console.log(`Trying ${source.name}:`, source.url);
+      console.log(`Trying ${source.name}:`, source.url.substring(0, 100));
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), source.timeout);
 
       try {
-        const response = await fetch(source.url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
+        // Skip rapidapi if no key configured
+        if (source.name === 'adsbx-rapid') {
+          clearTimeout(timeout);
+          continue; // Skip — requires API key
+        }
+
+        const response = await fetch(source.url, { signal: controller.signal, headers });
         clearTimeout(timeout);
 
         if (!response.ok) {
-          const text = await response.text();
-          console.warn(`${source.name} error:`, response.status, text.substring(0, 100));
+          console.warn(`${source.name}: HTTP ${response.status}`);
           continue;
         }
 
@@ -66,36 +91,29 @@ Deno.serve(async (req) => {
             ]);
 
           if (states.length > 0) {
-            console.log(`${source.name}: ${states.length} aircraft found`);
-            return new Response(
-              JSON.stringify({ success: true, data: { time: Date.now() / 1000, states } }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+            console.log(`${source.name}: ${states.length} aircraft`);
+            return ok({ success: true, data: { time: Date.now() / 1000, states } });
           }
-          console.log(`${source.name}: 0 aircraft, trying next source`);
+          console.log(`${source.name}: 0 aircraft`);
         } else {
           // OpenSky format
           const states = raw?.states || [];
           if (states.length > 0) {
-            console.log(`${source.name}: ${states.length} aircraft found`);
-            return new Response(
-              JSON.stringify({ success: true, data: { time: raw?.time || Date.now() / 1000, states } }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+            console.log(`${source.name}: ${states.length} aircraft`);
+            return ok({ success: true, data: { time: raw?.time || Date.now() / 1000, states } });
           }
           console.log(`${source.name}: 0 aircraft`);
         }
       } catch (fetchErr) {
         clearTimeout(timeout);
-        console.warn(`${source.name} fetch failed:`, fetchErr instanceof Error ? fetchErr.message : fetchErr);
+        console.warn(`${source.name} failed:`, fetchErr instanceof Error ? fetchErr.message : fetchErr);
       }
     }
 
-    // All sources returned 0 — return empty
     console.log('All ADS-B sources returned 0 aircraft');
-    return new Response(JSON.stringify(EMPTY), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return ok(EMPTY);
   } catch (error) {
     console.error('Edge function error:', error);
-    return new Response(JSON.stringify(EMPTY), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return ok(EMPTY);
   }
 });
