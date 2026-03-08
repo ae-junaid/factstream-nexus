@@ -109,7 +109,7 @@ export default function AirspaceMonitor({ conflict }: AirspaceMonitorProps) {
       </div>
       <div className="px-3 py-1.5 border-t border-border">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          SOURCE: OPENSKY NETWORK · LIVE ADS-B
+          SOURCE: ADSB.LOL · LIVE ADS-B
         </p>
       </div>
     </div>
