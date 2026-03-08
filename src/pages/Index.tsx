@@ -7,7 +7,7 @@ import EventTimeline from '@/components/dashboard/EventTimeline';
 import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
-import AirspaceMonitor from '@/components/dashboard/AirspaceMonitor';
+import ConflictOverview from '@/components/dashboard/ConflictOverview';
 import MaritimeTracker from '@/components/dashboard/MaritimeTracker';
 import AdSlot from '@/components/dashboard/AdSlot';
 import { ConflictProvider, useConflict } from '@/contexts/ConflictContext';
