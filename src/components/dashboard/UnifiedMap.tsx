@@ -294,13 +294,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
         </div>
       </div>
 
-      {/* Loading indicator */}
-      {flightsLoading && activeLayers.has('flights') && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[500] bg-card/90 backdrop-blur-sm border border-border rounded px-3 py-1.5 flex items-center gap-2">
-          <Loader2 className="w-3 h-3 text-primary animate-spin" />
-          <span className="text-[9px] text-muted-foreground tracking-wider">LOADING ADS-B...</span>
-        </div>
-      )}
 
       <div ref={mapRef} className="h-full w-full" />
     </div>
