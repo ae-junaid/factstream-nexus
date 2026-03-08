@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink, ImageOff } from 'lucide-react';
 import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 
 const credBgMap: Record<string, string> = {
@@ -9,15 +9,6 @@ const credBgMap: Record<string, string> = {
   disputed: 'bg-ops-red/20 text-ops-red border-ops-red/30',
 };
 
-// News thumbnails from unsplash based on keywords
-const conflictImages = [
-  'https://images.unsplash.com/photo-1590081543655-f3c3c1a56d73?w=600&h=340&fit=crop',
-  'https://images.unsplash.com/photo-1542362567-b07e54358753?w=600&h=340&fit=crop',
-  'https://images.unsplash.com/photo-1580130379624-3a069adbffc5?w=600&h=340&fit=crop',
-  'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=600&h=340&fit=crop',
-  'https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=600&h=340&fit=crop',
-];
-
 interface MediaCarouselProps {
   news: NewsItem[];
 }
@@ -26,6 +17,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const items = (news || []).slice(0, 10);
   const paused = locked || hovering;
@@ -48,6 +40,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
 
   useEffect(() => {
     setCurrent(0);
+    setFailedImages(new Set());
   }, [news]);
 
   if (items.length === 0) {
@@ -60,7 +53,8 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
 
   const item = items[current];
   const cred = CREDIBILITY_CONFIG[item.credibility];
-  const bgImage = conflictImages[current % conflictImages.length];
+  // Use the article's own social image if available
+  const bgImage = item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null;
 
   return (
     <div
@@ -93,12 +87,20 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
         </div>
       </div>
 
-      {/* Background image */}
-      <img
-        src={bgImage}
-        alt=""
-        className="w-full h-full object-cover transition-opacity duration-500"
-      />
+      {/* Background image or placeholder */}
+      {bgImage ? (
+        <img
+          src={bgImage}
+          alt={item.headline}
+          className="w-full h-full object-cover transition-opacity duration-500"
+          onError={() => setFailedImages(prev => new Set(prev).add(item.imageUrl!))}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-secondary/30">
+          <ImageOff className="w-8 h-8 text-muted-foreground/30 mb-2" />
+          <span className="text-[9px] text-muted-foreground/50 tracking-wider">NO MEDIA</span>
+        </div>
+      )}
 
       {/* Overlay gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />

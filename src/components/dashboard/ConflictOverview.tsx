@@ -18,11 +18,11 @@ const CONFLICT_CONTEXT: Record<string, {
   keyFact: string;
 }> = {
   'iran-israel': {
-    started: 'Oct 2023',
-    summary: 'Multi-front conflict involving Israel, Hamas in Gaza, Hezbollah in Lebanon, Iran-backed proxies, and Houthi attacks on Red Sea shipping. Ongoing ground operations in Gaza with massive humanitarian crisis.',
-    displaced: '2.3M+',
-    casualties: '45,000+',
-    keyFact: 'Over 70% of Gaza infrastructure destroyed',
+    started: 'Feb 2026',
+    summary: 'Direct military confrontation between Iran and Israel erupted in late February 2026. Exchange of ballistic missiles and airstrikes targeting military and nuclear facilities. Regional escalation involving Hezbollah, Houthis, and Iran-backed militias across multiple fronts. Major disruption to global energy markets and shipping lanes.',
+    displaced: '850K+',
+    casualties: '12,000+ (est.)',
+    keyFact: 'First direct Iran-Israel war — global energy crisis triggered',
   },
   'ukraine-russia': {
     started: 'Feb 2022',
