@@ -61,7 +61,7 @@ interface MaritimeTrackerProps {
 }
 
 export default function MaritimeTracker({ conflict }: MaritimeTrackerProps) {
-  const vessels = VESSELS_BY_CONFLICT[conflict.id] || [];
+  const vessels = VESSELS_BY_CONFLICT[conflict?.id] || [];
   const blockedCount = vessels.filter(v => v.status === 'blocked' || v.status === 'diverted').length;
 
   return (
