@@ -45,7 +45,7 @@ const MARITIME_DATA: Record<string, Array<{ name: string; type: string; flag: st
   ],
 };
 
-type MapLayer = 'events' | 'flights' | 'maritime';
+type MapLayer = 'events' | 'maritime';
 
 interface UnifiedMapProps {
   events: ConflictEvent[];
