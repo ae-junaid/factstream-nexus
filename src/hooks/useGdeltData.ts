@@ -72,11 +72,13 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
         };
       });
 
-      setNews(mapped);
+      setNews(mapped.length > 0 ? mapped : mockNews);
       setError(null);
     } catch (err) {
       console.error('GDELT news fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch');
+      // Use mock data as fallback
+      setNews(prev => prev.length > 0 ? prev : mockNews);
     } finally {
       setLoading(false);
     }
