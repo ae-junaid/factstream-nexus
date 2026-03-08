@@ -37,7 +37,7 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     id: 'yemen-red-sea',
     label: 'Yemen — Red Sea / Houthi',
     shortLabel: 'YEMEN-RED SEA',
-    gdeltQuery: '(Yemen OR Houthi OR "Red Sea" OR "Bab el-Mandeb" OR Aden OR Sanaa) (attack OR missile OR ship OR naval OR strike OR military)',
+    gdeltQuery: '(Yemen OR Houthi OR "Red Sea" OR "Bab el-Mandeb" OR Aden OR Sanaa) (attack OR missile OR ship OR naval OR strike OR military) sourcelang:english',
     center: [15, 44],
     zoom: 6,
     bbox: { lamin: 10, lomin: 38, lamax: 20, lomax: 55 },
