@@ -8,7 +8,6 @@ import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
 import ConflictOverview from '@/components/dashboard/ConflictOverview';
-import MaritimeTracker from '@/components/dashboard/MaritimeTracker';
 import AdSlot from '@/components/dashboard/AdSlot';
 import { ConflictProvider, useConflict } from '@/contexts/ConflictContext';
 import { useGdeltNews, useGdeltEvents } from '@/hooks/useGdeltData';
@@ -52,14 +51,11 @@ function DashboardContent() {
 
         {/* RIGHT — Intel panels */}
         <div className="lg:col-span-4 flex flex-col min-h-[300px] lg:min-h-0 bg-card">
-          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <ThreatAssessment conflict={selectedConflict} />
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
+          <div className="shrink-0 min-h-0 overflow-hidden border-b border-border" style={{ flex: '2 1 0%' }}>
             <ConflictOverview conflict={selectedConflict} events={events} news={news} />
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <MaritimeTracker conflict={selectedConflict} />
+          <div className="shrink-0 min-h-0 overflow-hidden border-b border-border" style={{ flex: '3 1 0%' }}>
+            <ThreatAssessment conflict={selectedConflict} />
           </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
         </div>
@@ -69,7 +65,7 @@ function DashboardContent() {
       <AdSlot format="banner" className="shrink-0 border-t border-border" />
       <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          LIVE DATA FROM OPEN SOURCES — GDELT · ADS-B · AIS · ACLED · OCHA
+          LIVE DATA FROM OPEN SOURCES — GDELT · ACLED · OCHA
         </p>
       </footer>
     </div>

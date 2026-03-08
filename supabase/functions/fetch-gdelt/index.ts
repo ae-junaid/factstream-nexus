@@ -8,6 +8,84 @@ const ok = (data: unknown) => new Response(
   { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
 );
 
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+async function fetchWithRetry(url: string, timeoutMs: number, retries = 2): Promise<Response | null> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await fetchWithTimeout(url, timeoutMs);
+      if (response.ok) return response;
+      console.warn(`Attempt ${i + 1} failed: HTTP ${response.status}`);
+    } catch (err) {
+      console.warn(`Attempt ${i + 1} error:`, err instanceof Error ? err.message : err);
+    }
+    if (i < retries) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+  }
+  return null;
+}
+
+// RSS feed URLs per conflict for fallback news
+const RSS_FEEDS: Record<string, string[]> = {
+  'iran-israel': [
+    'https://rss.app/feeds/v1.1/t4bNsGfbqeSnqOPH.json',
+  ],
+  'default': [],
+};
+
+// Fetch news from RSS via rss2json (free, no key)
+async function fetchRssNews(query: string): Promise<any[]> {
+  // Use Google News RSS as a universal fallback
+  const keywords = query
+    .replace(/sourcelang:\w+/g, '')
+    .replace(/[()]/g, '')
+    .split(/\s+OR\s+/i)
+    .slice(0, 3)
+    .map(k => k.replace(/"/g, '').trim())
+    .filter(Boolean)
+    .join('+');
+  
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US&ceid=US:en`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=25`;
+  
+  console.log('Trying RSS fallback:', apiUrl.substring(0, 100));
+  
+  try {
+    const response = await fetchWithTimeout(apiUrl, 8000);
+    if (!response.ok) return [];
+    const data = await response.json();
+    
+    if (data.status !== 'ok' || !data.items?.length) return [];
+    
+    return data.items.map((item: any) => ({
+      url: item.link || '',
+      title: (item.title || '').replace(/<[^>]*>/g, '').trim(),
+      seendate: item.pubDate || new Date().toISOString(),
+      socialimage: item.thumbnail || item.enclosure?.link || '',
+      domain: extractDomainFromUrl(item.link || ''),
+      language: 'English',
+      sourcecountry: '',
+    })).filter((a: any) => a.title && a.url);
+  } catch (err) {
+    console.warn('RSS fallback failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
+function extractDomainFromUrl(url: string): string {
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return 'unknown'; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,68 +98,41 @@ Deno.serve(async (req) => {
       return ok(mode === 'geo' ? { type: 'FeatureCollection', features: [] } : { articles: [] });
     }
 
-    // Always enforce English language
     const langQuery = query.includes('sourcelang:') ? query : `${query} sourcelang:english`;
     const encodedQuery = encodeURIComponent(langQuery);
 
     if (mode === 'geo') {
-      // Try multiple GDELT GEO API modes - PointData often 404s
+      // Try GDELT GEO API with retry
       const geoModes = ['PointData', 'PointHeatmap'];
       
       for (const geoMode of geoModes) {
         const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=7d&maxpoints=50`;
-        console.log('Trying GDELT GEO:', geoMode, url.substring(0, 120));
+        console.log('Trying GDELT GEO:', geoMode);
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const response = await fetchWithRetry(url, 12000, 1);
+        if (!response) continue;
 
         try {
-          const response = await fetch(url, { signal: controller.signal });
-          clearTimeout(timeout);
-
-          if (!response.ok) {
-            const text = await response.text();
-            console.warn(`GDELT GEO ${geoMode} error:`, response.status, text.substring(0, 100));
-            continue; // try next mode
-          }
-
           const text = await response.text();
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            console.warn('GDELT GEO parse error for mode', geoMode);
-            continue;
-          }
-
+          const data = JSON.parse(text);
           const features = data?.features || [];
           if (features.length > 0) {
             console.log(`GDELT GEO ${geoMode}: ${features.length} features`);
             return ok(data);
           }
-        } catch (fetchErr) {
-          clearTimeout(timeout);
-          console.warn(`GDELT GEO ${geoMode} fetch failed:`, fetchErr instanceof Error ? fetchErr.message : fetchErr);
+        } catch {
+          console.warn('GDELT GEO parse error for mode', geoMode);
         }
       }
 
-      // Fallback: use DOC API to get articles with tone/location data
+      // Fallback: use DOC API to generate geo from articles
       const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=72h`;
-      console.log('Falling back to DOC API for geo data');
+      const docResponse = await fetchWithRetry(docUrl, 12000, 1);
       
-      const controller2 = new AbortController();
-      const timeout2 = setTimeout(() => controller2.abort(), 10000);
-      
-      try {
-        const response = await fetch(docUrl, { signal: controller2.signal });
-        clearTimeout(timeout2);
-        
-        if (response.ok) {
-          const text = await response.text();
-          let data;
-          try { data = JSON.parse(text); } catch { data = { articles: [] }; }
-          
-          // Convert articles to GeoJSON features using known location mapping
+      if (docResponse) {
+        try {
+          const text = await docResponse.text();
+          const data = JSON.parse(text);
           const articles = (data?.articles || []).filter((a: any) => a.language === 'English');
           const features = articles.slice(0, 25).map((a: any, i: number) => {
             const loc = extractLocationFromArticle(a.title || '', a.domain || '');
@@ -102,58 +153,52 @@ Deno.serve(async (req) => {
             console.log(`Doc-to-geo fallback: ${features.length} features`);
             return ok({ type: 'FeatureCollection', features });
           }
-        }
-      } catch (e) {
-        clearTimeout(timeout2);
-        console.warn('Doc fallback failed:', e instanceof Error ? e.message : e);
+        } catch { /* continue */ }
       }
 
-      // All attempts failed — return empty
-      console.log('All GEO attempts failed, returning empty');
       return ok({ type: 'FeatureCollection', features: [] });
     }
 
-    // Article mode
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=48h`;
-    console.log('Fetching GDELT articles:', url.substring(0, 120));
+    // === ARTICLE MODE ===
+    // Try GDELT first with retry
+    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=48h`;
+    console.log('Fetching GDELT articles');
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('GDELT article error:', response.status, text.substring(0, 200));
-        return ok({ articles: [] });
-      }
-
-      const text = await response.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = { articles: [] }; }
-
-      // Filter English-only articles
-      const articles = (data?.articles || []).filter((a: any) => 
-        !a.language || a.language === 'English'
-      );
-      
-      console.log(`GDELT articles: ${articles.length} English articles`);
-      return ok({ articles });
-    } catch (fetchErr) {
-      clearTimeout(timeout);
-      console.error('GDELT articles fetch failed:', fetchErr instanceof Error ? fetchErr.message : fetchErr);
-      return ok({ articles: [] });
+    const gdeltResponse = await fetchWithRetry(gdeltUrl, 12000, 2);
+    
+    if (gdeltResponse) {
+      try {
+        const text = await gdeltResponse.text();
+        const data = JSON.parse(text);
+        const articles = (data?.articles || []).filter((a: any) => 
+          !a.language || a.language === 'English'
+        );
+        
+        if (articles.length > 0) {
+          console.log(`GDELT articles: ${articles.length}`);
+          return ok({ articles });
+        }
+      } catch { /* fall through to RSS */ }
     }
+
+    // Fallback: Google News RSS via rss2json
+    console.log('GDELT returned 0 articles, trying RSS fallback');
+    const rssArticles = await fetchRssNews(query);
+    
+    if (rssArticles.length > 0) {
+      console.log(`RSS fallback: ${rssArticles.length} articles`);
+      return ok({ articles: rssArticles });
+    }
+
+    console.log('All news sources returned 0 articles');
+    return ok({ articles: [] });
   } catch (error) {
     console.error('Edge function error:', error);
     return ok({ articles: [] });
   }
 });
 
-// Helper: extract approximate coordinates from article title keywords
-function extractLocationFromArticle(title: string, domain: string): { lat: number; lng: number } {
+function extractLocationFromArticle(title: string, _domain: string): { lat: number; lng: number } {
   const t = title.toLowerCase();
   const locations: Record<string, { lat: number; lng: number }> = {
     'gaza': { lat: 31.35, lng: 34.31 },
@@ -196,7 +241,6 @@ function extractLocationFromArticle(title: string, domain: string): { lat: numbe
 
   for (const [keyword, coords] of Object.entries(locations)) {
     if (t.includes(keyword)) {
-      // Add small random offset to prevent stacking
       return {
         lat: coords.lat + (Math.random() - 0.5) * 0.5,
         lng: coords.lng + (Math.random() - 0.5) * 0.5,
