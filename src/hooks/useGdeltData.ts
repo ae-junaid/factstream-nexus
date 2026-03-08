@@ -107,11 +107,13 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
 
       if (fnError) {
         console.warn('GDELT events function error:', fnError.message);
+        setEvents(prev => prev.length > 0 ? prev : mockEvents);
         setLoading(false);
         return;
       }
       if (!data?.success && !data?.data) {
         console.warn('GDELT events returned no data');
+        setEvents(prev => prev.length > 0 ? prev : mockEvents);
         setLoading(false);
         return;
       }
