@@ -265,8 +265,7 @@ Deno.serve(async (req) => {
         
         if (articles.length > 0) {
           console.log(`Atom: ${articles.length} articles`);
-          // Enrich with OG images
-          const enriched = await enrichWithOgImages(articles);
+          const enriched = enrichWithImages(articles);
           return ok({ articles: enriched });
         }
       } catch { /* continue */ }
