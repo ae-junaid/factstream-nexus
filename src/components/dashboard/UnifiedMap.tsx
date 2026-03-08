@@ -62,7 +62,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const layerGroups = useRef<Record<MapLayer, L.LayerGroup>>({
     events: L.layerGroup(),
-    flights: L.layerGroup(),
     maritime: L.layerGroup(),
   });
   const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(new Set(['events', 'maritime']));
