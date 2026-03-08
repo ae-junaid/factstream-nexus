@@ -52,7 +52,7 @@ const Index = () => {
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <AirspaceMonitor />
           </div>
-          <AdSlot format="sidebar" className="shrink-0 m-2" />
+          <AdSlot format="inline" className="shrink-0 m-2" />
         </div>
       </div>
 

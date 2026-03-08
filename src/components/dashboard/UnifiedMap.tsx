@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
-import { Plane, Anchor, Radio, Crosshair, Layers, AlertTriangle } from 'lucide-react';
+import { Plane, Anchor, Radio, Crosshair, Layers, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
 
 // ── Flight mock data (FR24-style detail) ──
 interface FlightData {
@@ -97,7 +97,9 @@ interface UnifiedMapProps {
 
 export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const layerGroups = useRef<Record<MapLayer, L.LayerGroup>>({
     events: L.layerGroup(),
     flights: L.layerGroup(),
@@ -327,8 +329,18 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
     { key: 'maritime', label: 'AIS', icon: <Anchor className="w-3 h-3" />, count: stats.vessels, color: 'text-ops-blue' },
   ];
 
+  // Listen for fullscreen exit via Escape
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+      setTimeout(() => mapInstance.current?.invalidateSize(), 100);
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   return (
-    <div className="relative h-full w-full overflow-hidden rounded border border-border">
+    <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded border border-border ${isFullscreen ? 'bg-background' : ''}`}>
       {/* HUD corners */}
       <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-primary z-[1000] pointer-events-none" />
       <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-primary z-[1000] pointer-events-none" />
@@ -360,9 +372,25 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-border rounded px-2 py-1.5">
-          <Radio className="w-2.5 h-2.5 text-ops-green pulse-dot" />
-          <span className="text-[9px] text-ops-green font-bold tracking-wider">LIVE</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const el = containerRef.current;
+              if (!el) return;
+              if (!document.fullscreenElement) {
+                el.requestFullscreen().then(() => setIsFullscreen(true));
+              } else {
+                document.exitFullscreen().then(() => setIsFullscreen(false));
+              }
+            }}
+            className="flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+          </button>
+          <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-border rounded px-2 py-1.5">
+            <Radio className="w-2.5 h-2.5 text-ops-green pulse-dot" />
+            <span className="text-[9px] text-ops-green font-bold tracking-wider">LIVE</span>
+          </div>
         </div>
       </div>
 
