@@ -28,8 +28,16 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
         body: conflict.bbox,
       });
 
-      if (fnError) throw new Error(fnError.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to fetch flights');
+      if (fnError) {
+        console.warn('OpenSky function error:', fnError.message);
+        setLoading(false);
+        return;
+      }
+      if (!data?.success && !data?.data) {
+        console.warn('OpenSky returned no data');
+        setLoading(false);
+        return;
+      }
 
       setRateLimited(!!data.rateLimited);
       const states: any[][] = data.data?.states || [];
