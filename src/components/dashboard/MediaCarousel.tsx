@@ -22,12 +22,12 @@ interface MediaCarouselProps {
   news: NewsItem[];
 }
 
-export default function MediaCarousel({ news }: MediaCarouselProps) {
+export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hovering, setHovering] = useState(false);
 
-  const items = news.slice(0, 10);
+  const items = (news || []).slice(0, 10);
   const paused = locked || hovering;
 
   const next = useCallback(() => {

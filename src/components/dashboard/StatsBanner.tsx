@@ -28,9 +28,9 @@ const trendColor = {
   stable: 'text-muted-foreground',
 };
 
-export default function StatsBanner({ conflict, events, news }: StatsBannerProps) {
+export default function StatsBanner({ conflict, events = [], news = [] }: StatsBannerProps) {
   // Derive live stats from actual fetched data
-  const eventsByType = events.reduce((acc, e) => {
+  const eventsByType = (events || []).reduce((acc, e) => {
     acc[e.type] = (acc[e.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
