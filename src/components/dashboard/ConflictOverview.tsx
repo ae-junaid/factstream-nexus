@@ -207,10 +207,10 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.03 }}
-              className="flex flex-col items-center text-center p-1.5 rounded border border-border bg-background/50"
+              className="flex flex-col items-center text-center p-1.5 rounded border border-border bg-background/50 overflow-hidden"
             >
-              <card.icon className={`w-3 h-3 ${card.color} mb-1`} />
-              <span className="text-[12px] font-bold text-foreground leading-none">{card.value}</span>
+              <card.icon className={`w-3 h-3 ${card.color} mb-1 shrink-0`} />
+              <span className="text-[11px] font-bold text-foreground leading-tight line-clamp-2 break-words w-full">{card.value}</span>
               <span className="text-[7px] text-muted-foreground tracking-widest mt-0.5">{card.label}</span>
             </motion.div>
           ))}
