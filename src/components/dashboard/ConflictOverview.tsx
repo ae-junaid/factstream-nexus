@@ -106,15 +106,18 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
   const context = CONFLICT_CONTEXT[conflict.id] || {
     started: 'Unknown',
     summary: 'Conflict monitoring active.',
+    background: '',
+    majorTargets: [],
     displaced: 'N/A',
     casualties: 'N/A',
     keyFact: 'Data collection in progress',
+    sources: [],
   };
 
   const stats = useMemo(() => {
     const recentEvents = events.length;
-    const sources = new Set(news.map(n => n.source)).size;
-    return { recentEvents, sources };
+    const liveSources = new Set(news.map(n => n.source)).size;
+    return { recentEvents, liveSources };
   }, [events, news]);
 
   return (
@@ -170,6 +173,24 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
           </p>
         </motion.div>
 
+        {/* Background */}
+        {context.background && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="rounded border border-primary/20 bg-primary/5 p-2.5"
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <BookOpen className="w-3 h-3 text-primary" />
+              <span className="text-[8px] text-primary tracking-widest font-bold">BACKGROUND</span>
+            </div>
+            <p className="text-[9px] text-foreground/70 leading-[1.6]">
+              {context.background}
+            </p>
+          </motion.div>
+        )}
+
         {/* Stats — horizontal row */}
         <div className="grid grid-cols-4 gap-1.5">
           {[
@@ -182,7 +203,7 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
               key={card.label}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 + i * 0.03 }}
+              transition={{ delay: 0.1 + i * 0.03 }}
               className="flex flex-col items-center text-center p-1.5 rounded border border-border bg-background/50"
             >
               <card.icon className={`w-3 h-3 ${card.color} mb-1`} />
@@ -191,6 +212,29 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
             </motion.div>
           ))}
         </div>
+
+        {/* Major Targets */}
+        {context.majorTargets && context.majorTargets.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded border border-ops-red/20 bg-ops-red/5 p-2.5"
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Target className="w-3 h-3 text-ops-red" />
+              <span className="text-[8px] text-ops-red tracking-widest font-bold">MAJOR TARGETS / DEVELOPMENTS</span>
+            </div>
+            <ul className="space-y-1">
+              {context.majorTargets.map((target, i) => (
+                <li key={i} className="flex items-start gap-1.5">
+                  <span className="text-[6px] text-ops-red mt-1">▸</span>
+                  <span className="text-[9px] text-foreground/70 leading-relaxed">{target}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
 
         {/* Key fact — accent callout */}
         <motion.div
@@ -223,10 +267,10 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[8px] text-muted-foreground tracking-wider">
-              <span className="text-primary font-bold">{stats.sources}</span> ACTIVE SOURCES
+              <span className="text-primary font-bold">{stats.liveSources}</span> LIVE FEEDS
             </span>
             <span className="text-[7px] text-muted-foreground/60 tracking-wider">
-              GDELT · ACLED · OCHA
+              {(context.sources || []).join(' · ')}
             </span>
           </div>
         </div>
