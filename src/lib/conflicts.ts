@@ -13,14 +13,14 @@ export interface ConflictZone {
 export const CONFLICT_ZONES: ConflictZone[] = [
   {
     id: 'iran-israel',
-    label: 'Iran — Israel War',
-    shortLabel: 'IRAN-ISRAEL WAR',
-    gdeltQuery: '(Iran OR Israel OR "Iran Israel war" OR Gaza OR Hezbollah OR Hamas OR Lebanon OR "Iranian missile" OR "Israeli airstrike" OR IRGC OR "Iron Dome") (war OR attack OR strike OR military OR conflict OR missile OR drone OR bombing OR retaliation) sourcelang:english',
-    center: [31, 38],
-    zoom: 5,
-    bbox: { lamin: 12, lomin: 30, lamax: 40, lomax: 60 },
-    regions: ['Israel', 'Iran', 'Gaza', 'Lebanon', 'Syria', 'Iraq', 'Yemen', 'Red Sea'],
-    parties: ['Israel', 'Iran', 'Hamas', 'Hezbollah', 'Houthis', 'IRGC'],
+    label: 'Iran — US/Israel War',
+    shortLabel: 'IRAN-US/ISRAEL WAR',
+    gdeltQuery: '(Iran OR Israel OR "Iran war" OR "US Iran" OR "Persian Gulf" OR Hormuz OR IRGC OR "Al Udeid" OR Bahrain OR "Iranian missile" OR "Israeli airstrike" OR Hezbollah OR Houthi) (war OR attack OR strike OR military OR missile OR retaliation) sourcelang:english',
+    center: [28, 48],
+    zoom: 4,
+    bbox: { lamin: 10, lomin: 30, lamax: 42, lomax: 62 },
+    regions: ['Iran', 'Israel', 'Qatar', 'UAE/Dubai', 'Bahrain', 'Oman', 'Saudi Arabia', 'Iraq', 'Lebanon', 'Syria', 'Yemen', 'Red Sea', 'Strait of Hormuz'],
+    parties: ['US Coalition', 'Israel', 'Iran / IRGC', 'Hezbollah', 'Houthis', 'Iraq Militias'],
   },
   {
     id: 'ukraine-russia',
