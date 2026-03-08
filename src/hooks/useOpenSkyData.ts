@@ -22,22 +22,15 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
   const [error, setError] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
 
+  // Use conflict.id as stable dependency instead of bbox object
   const fetchFlights = useCallback(async () => {
     try {
       const { data, error: fnError } = await supabase.functions.invoke('fetch-opensky', {
         body: conflict.bbox,
       });
 
-      if (fnError) {
-        console.warn('OpenSky function error:', fnError.message);
-        setLoading(false);
-        return;
-      }
-      if (!data?.success && !data?.data) {
-        console.warn('OpenSky returned no data');
-        setLoading(false);
-        return;
-      }
+      if (fnError) { console.warn('OpenSky error:', fnError.message); setLoading(false); return; }
+      if (!data?.success && !data?.data) { setLoading(false); return; }
 
       setRateLimited(!!data.rateLimited);
       const states: any[][] = data.data?.states || [];
@@ -50,10 +43,10 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
           originCountry: s[2] || '',
           lat: s[6],
           lng: s[5],
-          altitude: Math.round((s[7] || 0) * 0.3048), // feet to meters approx
-          velocity: Math.round((s[9] || 0) * 1.944), // m/s to knots
+          altitude: Math.round((s[7] || 0) * 0.3048),
+          velocity: Math.round((s[9] || 0) * 1.944),
           heading: Math.round(s[10] || 0),
-          verticalRate: Math.round((s[11] || 0) * 196.85), // m/s to ft/min
+          verticalRate: Math.round((s[11] || 0) * 196.85),
           onGround: s[8] || false,
           squawk: s[14] || '—',
         }));
@@ -66,9 +59,11 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
     } finally {
       setLoading(false);
     }
-  }, [conflict.bbox]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conflict.id]);
 
   useEffect(() => {
+    setFlights([]);
     setLoading(true);
     fetchFlights();
     const interval = setInterval(fetchFlights, refreshInterval);

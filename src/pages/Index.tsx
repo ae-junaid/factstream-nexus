@@ -59,7 +59,7 @@ function DashboardContent() {
             <AirspaceMonitor conflict={selectedConflict} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <MaritimeTracker />
+            <MaritimeTracker conflict={selectedConflict} />
           </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
         </div>
