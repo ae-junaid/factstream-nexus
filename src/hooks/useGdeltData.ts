@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ConflictZone } from '@/lib/conflicts';
-import { ConflictEvent, NewsItem, EventType, SourceCredibility } from '@/data/mockData';
+import { ConflictEvent, NewsItem, EventType, SourceCredibility, mockEvents, mockNews } from '@/data/mockData';
 
 // Map GDELT tones / themes to our event types
 function classifyArticle(title: string): EventType {
