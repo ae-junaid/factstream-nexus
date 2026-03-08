@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ConflictZone } from '@/lib/conflicts';
-import { ConflictEvent, NewsItem, EventType, SourceCredibility, mockEvents, mockNews } from '@/data/mockData';
+import { ConflictEvent, NewsItem, EventType, SourceCredibility, MOCK_EVENTS_BY_CONFLICT, MOCK_NEWS_BY_CONFLICT } from '@/data/mockData';
 
 function classifyArticle(title: string): EventType {
   const t = title.toLowerCase();
@@ -18,7 +18,6 @@ function classifyArticle(title: string): EventType {
 function assessCredibility(domain: string): SourceCredibility {
   const verified = ['reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'aljazeera.com', 'france24.com', 'dw.com', 'theguardian.com', 'nytimes.com', 'washingtonpost.com', 'cnn.com'];
   const reliable = ['timesofisrael.com', 'haaretz.com', 'jpost.com', 'middleeasteye.net', 'thenationalnews.com', 'arabnews.com', 'alarabiya.net', 'kyivindependent.com', 'ukrinform.net'];
-  
   const d = domain.toLowerCase();
   if (verified.some(v => d.includes(v))) return 'verified';
   if (reliable.some(r => d.includes(r))) return 'reliable';
@@ -26,14 +25,9 @@ function assessCredibility(domain: string): SourceCredibility {
 }
 
 function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace('www.', '');
-  } catch {
-    return 'unknown';
-  }
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return 'unknown'; }
 }
 
-// Check if text is primarily English (ASCII characters)
 function isEnglishText(text: string): boolean {
   if (!text) return false;
   const asciiChars = text.replace(/[^a-zA-Z]/g, '').length;
@@ -42,38 +36,37 @@ function isEnglishText(text: string): boolean {
 }
 
 export interface GdeltArticle {
-  url: string;
-  title: string;
-  seendate: string;
-  socialimage: string;
-  domain: string;
-  language: string;
-  sourcecountry: string;
+  url: string; title: string; seendate: string; socialimage: string; domain: string; language: string; sourcecountry: string;
+}
+
+function getMockEvents(conflictId: string): ConflictEvent[] {
+  return MOCK_EVENTS_BY_CONFLICT[conflictId] || MOCK_EVENTS_BY_CONFLICT['iran-israel'];
+}
+
+function getMockNews(conflictId: string): NewsItem[] {
+  return MOCK_NEWS_BY_CONFLICT[conflictId] || MOCK_NEWS_BY_CONFLICT['iran-israel'];
 }
 
 export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
-  const [news, setNews] = useState<NewsItem[]>(mockNews);
+  const [news, setNews] = useState<NewsItem[]>(getMockNews(conflict.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset to conflict-specific mock when conflict changes
+  useEffect(() => {
+    setNews(getMockNews(conflict.id));
+    setLoading(true);
+  }, [conflict.id]);
 
   const fetchNews = useCallback(async () => {
     try {
       const { data, error: fnError } = await supabase.functions.invoke('fetch-gdelt', {
         body: { query: conflict.gdeltQuery, mode: 'articles' },
       });
-
-      if (fnError) {
-        console.warn('GDELT news error:', fnError.message);
-        setLoading(false);
-        return;
-      }
+      if (fnError) { console.warn('GDELT news error:', fnError.message); setLoading(false); return; }
 
       const articles: GdeltArticle[] = data?.data?.articles || [];
-      
-      // Filter English-only articles
-      const englishArticles = articles.filter(a => 
-        (!a.language || a.language === 'English') && isEnglishText(a.title)
-      );
+      const englishArticles = articles.filter(a => (!a.language || a.language === 'English') && isEnglishText(a.title));
 
       const mapped: NewsItem[] = englishArticles.slice(0, 25).map((a, i) => {
         const domain = extractDomain(a.url);
@@ -87,15 +80,14 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
         };
       });
 
-      setNews(mapped.length > 0 ? mapped : mockNews);
+      setNews(mapped.length > 0 ? mapped : getMockNews(conflict.id));
       setError(null);
     } catch (err) {
       console.warn('GDELT news fetch error:', err);
-      // Keep existing data or use mock
     } finally {
       setLoading(false);
     }
-  }, [conflict.gdeltQuery]);
+  }, [conflict.gdeltQuery, conflict.id]);
 
   useEffect(() => {
     setLoading(true);
@@ -108,30 +100,29 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
 }
 
 export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000) {
-  const [events, setEvents] = useState<ConflictEvent[]>(mockEvents);
+  const [events, setEvents] = useState<ConflictEvent[]>(getMockEvents(conflict.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset to conflict-specific mock when conflict changes
+  useEffect(() => {
+    setEvents(getMockEvents(conflict.id));
+    setLoading(true);
+  }, [conflict.id]);
 
   const fetchEvents = useCallback(async () => {
     try {
       const { data, error: fnError } = await supabase.functions.invoke('fetch-gdelt', {
         body: { query: conflict.gdeltQuery, mode: 'geo' },
       });
-
-      if (fnError) {
-        console.warn('GDELT events error:', fnError.message);
-        setLoading(false);
-        return;
-      }
+      if (fnError) { console.warn('GDELT events error:', fnError.message); setLoading(false); return; }
 
       const features = data?.data?.features || [];
-      
       const mapped: ConflictEvent[] = features.slice(0, 30).map((f: any, i: number) => {
         const props = f.properties || {};
         const coords = f.geometry?.coordinates || [0, 0];
         const title = props.name || props.html || `Event in ${conflict.shortLabel} region`;
         const domain = props.url ? extractDomain(props.url) : props.domain || 'GDELT';
-        
         return {
           id: `gdelt-e-${i}-${Date.now()}`,
           timestamp: props.urlpubtimedate || new Date().toISOString(),
@@ -149,15 +140,14 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
         };
       }).filter((e: ConflictEvent) => isEnglishText(e.title));
 
-      setEvents(mapped.length > 0 ? mapped : mockEvents);
+      setEvents(mapped.length > 0 ? mapped : getMockEvents(conflict.id));
       setError(null);
     } catch (err) {
       console.warn('GDELT events fetch error:', err);
-      // Keep existing data or use mock
     } finally {
       setLoading(false);
     }
-  }, [conflict.gdeltQuery, conflict.shortLabel]);
+  }, [conflict.gdeltQuery, conflict.shortLabel, conflict.id]);
 
   useEffect(() => {
     setLoading(true);
