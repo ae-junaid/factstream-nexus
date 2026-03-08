@@ -8,26 +8,17 @@ const ok = (data: unknown) => new Response(
   { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
 );
 
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+async function tryFetch(url: string, timeoutMs = 10000): Promise<Response | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    return response;
-  } catch (err) {
-    clearTimeout(timeout);
-    throw err;
-  }
-}
-
-async function tryFetch(url: string, timeoutMs = 10000): Promise<Response | null> {
-  try {
-    const response = await fetchWithTimeout(url, timeoutMs);
     if (response.ok) return response;
     console.warn(`HTTP ${response.status} for ${url.substring(0, 80)}`);
     return null;
   } catch (err) {
+    clearTimeout(timeout);
     console.warn(`Fetch error: ${err instanceof Error ? err.message : err}`);
     return null;
   }
@@ -53,56 +44,65 @@ function extractKeyTerms(query: string): string {
     .join(' ');
 }
 
-// Reliable topic images from Unsplash (no API key needed)
-const TOPIC_IMAGES: Record<string, string[]> = {
-  iran: [
-    'https://images.unsplash.com/photo-1564694202883-46e7fa827764?w=800&q=80',
-    'https://images.unsplash.com/photo-1547483238-2cbf881a559f?w=800&q=80',
-  ],
-  israel: [
-    'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
-    'https://images.unsplash.com/photo-1552423314-cf29ab68ad73?w=800&q=80',
-  ],
-  ukraine: [
-    'https://images.unsplash.com/photo-1561542320-9a18cd340e98?w=800&q=80',
-    'https://images.unsplash.com/photo-1569317002804-ab77bcf1bce4?w=800&q=80',
-  ],
-  military: [
-    'https://images.unsplash.com/photo-1580752300992-559f8e0734e0?w=800&q=80',
-    'https://images.unsplash.com/photo-1579912437766-7896df6d3cd3?w=800&q=80',
-  ],
-  diplomatic: [
-    'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&q=80',
-    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&q=80',
-  ],
-  humanitarian: [
-    'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80',
-    'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&q=80',
-  ],
-  default: [
-    'https://images.unsplash.com/photo-1504711434969-e33886168d6c?w=800&q=80',
-    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&q=80',
-    'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&q=80',
-  ],
-};
-
-function getTopicImage(title: string, index: number): string {
-  const t = title.toLowerCase();
-  let pool = TOPIC_IMAGES.default;
-  if (t.includes('iran') || t.includes('tehran') || t.includes('persian')) pool = TOPIC_IMAGES.iran;
-  else if (t.includes('israel') || t.includes('jerusalem')) pool = TOPIC_IMAGES.israel;
-  else if (t.includes('ukraine') || t.includes('kyiv')) pool = TOPIC_IMAGES.ukraine;
-  else if (t.includes('diplomatic') || t.includes('talks') || t.includes('summit')) pool = TOPIC_IMAGES.diplomatic;
-  else if (t.includes('humanitarian') || t.includes('aid') || t.includes('refugee')) pool = TOPIC_IMAGES.humanitarian;
-  else if (t.includes('military') || t.includes('strike') || t.includes('missile') || t.includes('war')) pool = TOPIC_IMAGES.military;
-  return pool[index % pool.length];
+// Scrape og:image from an article URL (fast, first 30KB only)
+async function scrapeOgImage(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)' },
+      redirect: 'follow',
+    });
+    clearTimeout(timeout);
+    if (!resp.ok || !resp.body) return '';
+    
+    // Read only first 30KB
+    const reader = resp.body.getReader();
+    let html = '';
+    let bytesRead = 0;
+    while (bytesRead < 30000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += new TextDecoder().decode(value);
+      bytesRead += value.length;
+    }
+    reader.cancel();
+    
+    // Try og:image first, then twitter:image
+    const ogMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    if (ogMatch?.[1] && ogMatch[1].startsWith('http')) return ogMatch[1];
+    
+    const twMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i);
+    if (twMatch?.[1] && twMatch[1].startsWith('http')) return twMatch[1];
+    
+    return '';
+  } catch {
+    return '';
+  }
 }
 
-function enrichWithImages(articles: any[]): any[] {
-  return articles.map((a: any, i: number) => {
-    if (a.socialimage && a.socialimage.startsWith('http')) return a;
-    return { ...a, socialimage: getTopicImage(a.title || '', i) };
-  });
+// Enrich articles with og:image scraping (top 8 articles in parallel)
+async function enrichArticlesWithImages(articles: any[]): Promise<any[]> {
+  const needImages = articles.filter(a => !a.socialimage || !a.socialimage.startsWith('http'));
+  const toScrape = needImages.slice(0, 8);
+  
+  if (toScrape.length > 0) {
+    const results = await Promise.allSettled(
+      toScrape.map(a => scrapeOgImage(a.url))
+    );
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value) {
+        toScrape[i].socialimage = result.value;
+      }
+    });
+    const scraped = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    console.log(`Scraped ${scraped}/${toScrape.length} og:images`);
+  }
+  
+  return articles;
 }
 
 Deno.serve(async (req) => {
@@ -169,7 +169,8 @@ Deno.serve(async (req) => {
         const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
         if (articles.length > 0) {
           console.log(`GDELT articles: ${articles.length} (${timespan})`);
-          return ok({ articles: enrichWithImages(articles) });
+          const enriched = await enrichArticlesWithImages(articles);
+          return ok({ articles: enriched });
         }
       } catch { /* continue */ }
     }
@@ -192,7 +193,8 @@ Deno.serve(async (req) => {
           })).filter((a: any) => a.title && a.url);
           if (articles.length > 0) {
             console.log(`RSS: ${articles.length} articles`);
-            return ok({ articles: enrichWithImages(articles) });
+            const enriched = await enrichArticlesWithImages(articles);
+            return ok({ articles: enriched });
           }
         }
       } catch { /* continue */ }
@@ -221,7 +223,8 @@ Deno.serve(async (req) => {
         }).filter((a: any) => a.title && a.url);
         if (articles.length > 0) {
           console.log(`Atom: ${articles.length} articles`);
-          return ok({ articles: enrichWithImages(articles) });
+          const enriched = await enrichArticlesWithImages(articles);
+          return ok({ articles: enriched });
         }
       } catch { /* continue */ }
     }
