@@ -66,8 +66,7 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
   });
   const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(new Set(['events', 'maritime']));
 
-  const { flights, loading: flightsLoading } = useOpenSkyFlights(conflict, 30000);
-  const vessels = MARITIME_DATA[conflict.id] || [];
+  const vessels = MARITIME_DATA[conflict?.id] || [];
 
   const toggleLayer = useCallback((layer: MapLayer) => {
     setActiveLayers(prev => {
