@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Megaphone } from 'lucide-react';
 
 interface AdSlotProps {
@@ -5,7 +6,7 @@ interface AdSlotProps {
   className?: string;
 }
 
-export default function AdSlot({ format, className = '' }: AdSlotProps) {
+const AdSlot = forwardRef<HTMLDivElement, AdSlotProps>(({ format, className = '' }, ref) => {
   const sizes: Record<string, string> = {
     banner: 'h-[90px] w-full',
     sidebar: 'h-[250px] w-full',
