@@ -228,7 +228,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
 
   const layerButtons: { key: MapLayer; label: string; icon: React.ReactNode; count: number; color: string }[] = [
     { key: 'events', label: 'EVENTS', icon: <Crosshair className="w-3 h-3" />, count: events.length, color: 'text-primary' },
-    { key: 'flights', label: 'ADS-B', icon: <Plane className="w-3 h-3" />, count: flights.length, color: 'text-ops-cyan' },
     { key: 'maritime', label: 'AIS', icon: <Anchor className="w-3 h-3" />, count: vessels.length, color: 'text-ops-blue' },
   ];
 
