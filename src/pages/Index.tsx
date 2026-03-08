@@ -66,7 +66,7 @@ function DashboardContent() {
 
       <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          LIVE DATA FROM OPEN SOURCES — GDELT · OPENSKY NETWORK · ACLED · OCHA · ADS-B EXCHANGE · MARINETRAFFIC (FREE)
+          LIVE DATA FROM OPEN SOURCES — GDELT · ADSB.LOL · ACLED · OCHA · ADS-B EXCHANGE · MARINETRAFFIC (FREE)
         </p>
       </footer>
     </div>

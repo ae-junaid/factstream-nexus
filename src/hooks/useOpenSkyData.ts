@@ -43,14 +43,14 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
       const states: any[][] = data.data?.states || [];
       
       const mapped: LiveFlight[] = states
-        .filter((s: any[]) => s[5] != null && s[6] != null && !s[8]) // has position & airborne
+        .filter((s: any[]) => s[5] != null && s[6] != null && !s[8])
         .map((s: any[]) => ({
           icao24: s[0] || '',
           callsign: (s[1] || '').trim(),
           originCountry: s[2] || '',
           lat: s[6],
           lng: s[5],
-          altitude: Math.round(s[7] || s[13] || 0),
+          altitude: Math.round((s[7] || 0) * 0.3048), // feet to meters approx
           velocity: Math.round((s[9] || 0) * 1.944), // m/s to knots
           heading: Math.round(s[10] || 0),
           verticalRate: Math.round((s[11] || 0) * 196.85), // m/s to ft/min
