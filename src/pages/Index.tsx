@@ -44,7 +44,7 @@ function DashboardContent() {
             <UnifiedMap events={events} onEventSelect={setSelectedEvent} conflict={selectedConflict} />
             <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
           </div>
-          <div className="border-t border-border min-h-0 shrink-0">
+          <div className="border-t border-border min-h-0" style={{ flex: '1 1 0%' }}>
             <MediaCarousel news={news} />
           </div>
         </div>
