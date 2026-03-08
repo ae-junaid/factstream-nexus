@@ -53,7 +53,7 @@ export const mockWarMedia: WarMedia[] = [
   {
     id: 'wm-004',
     type: 'video',
-    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=600&h=340&fit=crop',
     caption: 'Houthi anti-ship missile launch captured on camera — Red Sea',
     source: '@YemenUpdate',
