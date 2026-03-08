@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Info, Users, MapPin, Swords, Calendar, AlertTriangle, Globe, Radio } from 'lucide-react';
+import { Users, MapPin, Swords, Calendar, AlertTriangle, Globe, Radio, Target, BookOpen } from 'lucide-react';
 import { ConflictZone } from '@/lib/conflicts';
 import { ConflictEvent, NewsItem } from '@/data/mockData';
 
