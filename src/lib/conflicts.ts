@@ -59,7 +59,7 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     id: 'myanmar',
     label: 'Myanmar Civil War',
     shortLabel: 'MYANMAR',
-    gdeltQuery: '(Myanmar OR Burma OR Yangon OR "resistance forces" OR junta) (conflict OR attack OR military OR coup OR resistance)',
+    gdeltQuery: '(Myanmar OR Burma OR Yangon OR "resistance forces" OR junta) (conflict OR attack OR military OR coup OR resistance) sourcelang:english',
     center: [19, 96],
     zoom: 5,
     bbox: { lamin: 9, lomin: 92, lamax: 28, lomax: 102 },

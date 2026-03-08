@@ -172,7 +172,7 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
             <tr><td style="color:#666;">Squawk</td><td style="text-align:right;">${flight.squawk}</td></tr>
           </table>
           <div style="margin-top:6px;padding-top:4px;border-top:1px solid #333;color:#555;font-size:8px;text-align:center;">
-            SOURCE: OPENSKY NETWORK · LIVE
+            SOURCE: ADSB.LOL · LIVE ADS-B
           </div>
         </div>
       `);
