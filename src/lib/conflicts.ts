@@ -13,9 +13,9 @@ export interface ConflictZone {
 export const CONFLICT_ZONES: ConflictZone[] = [
   {
     id: 'iran-israel',
-    label: 'Iran — Israel / Middle East',
-    shortLabel: 'IRAN-ISRAEL',
-    gdeltQuery: '(Iran OR Israel OR Gaza OR Hezbollah OR Hamas OR "West Bank" OR Lebanon OR "Red Sea" OR Houthi OR Syria) (war OR attack OR strike OR military OR conflict OR ceasefire OR missile OR drone) sourcelang:english',
+    label: 'Iran — Israel War',
+    shortLabel: 'IRAN-ISRAEL WAR',
+    gdeltQuery: '(Iran OR Israel OR "Iran Israel war" OR Gaza OR Hezbollah OR Hamas OR Lebanon OR "Iranian missile" OR "Israeli airstrike" OR IRGC OR "Iron Dome") (war OR attack OR strike OR military OR conflict OR missile OR drone OR bombing OR retaliation) sourcelang:english',
     center: [31, 38],
     zoom: 5,
     bbox: { lamin: 12, lomin: 30, lamax: 40, lomax: 60 },
