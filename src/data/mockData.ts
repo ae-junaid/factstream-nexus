@@ -114,14 +114,16 @@ const myanmarEvents: ConflictEvent[] = [
 
 // ── Per-conflict mock news ──────────────────────────────────────────
 const iranIsraelNews: NewsItem[] = [
-  { id: 'n-ii-1', headline: 'UN chief calls for immediate ceasefire across all fronts', source: 'Reuters', credibility: 'verified', timestamp: '2026-03-07T14:50:00Z', url: '#' },
-  { id: 'n-ii-2', headline: 'Red Cross unable to access northern Gaza for 5th day', source: 'ICRC', credibility: 'verified', timestamp: '2026-03-07T14:30:00Z', url: '#' },
-  { id: 'n-ii-3', headline: 'Iranian FM denies involvement in Iraqi base attack', source: 'Press TV', credibility: 'unconfirmed', timestamp: '2026-03-07T14:10:00Z', url: '#' },
-  { id: 'n-ii-4', headline: 'Egypt closes Rafah crossing amid security concerns', source: 'Al Arabiya', credibility: 'reliable', timestamp: '2026-03-07T13:45:00Z', url: '#' },
-  { id: 'n-ii-5', headline: 'US deploying additional carrier group to Eastern Mediterranean', source: 'AP News', credibility: 'verified', timestamp: '2026-03-07T13:20:00Z', url: '#' },
-  { id: 'n-ii-6', headline: 'WHO warns of disease outbreak risk in displaced populations', source: 'WHO', credibility: 'verified', timestamp: '2026-03-07T12:55:00Z', url: '#' },
-  { id: 'n-ii-7', headline: 'Satellite imagery reveals new activity at Iranian nuclear facility', source: 'Planet Labs', credibility: 'reliable', timestamp: '2026-03-07T12:30:00Z', url: '#' },
-  { id: 'n-ii-8', headline: 'Jordan intercepts unauthorized drone entering airspace', source: 'Petra News', credibility: 'reliable', timestamp: '2026-03-07T11:00:00Z', url: '#' },
+  { id: 'n-ii-1', headline: 'US-Israel coalition strikes devastate Iranian nuclear sites at Natanz and Isfahan', source: 'Reuters', credibility: 'verified', timestamp: '2026-03-08T06:00:00Z', url: '#' },
+  { id: 'n-ii-2', headline: 'Iran retaliates with massive missile barrage on US bases across Gulf — Qatar, UAE, Bahrain hit', source: 'Al Jazeera', credibility: 'verified', timestamp: '2026-03-08T05:00:00Z', url: '#' },
+  { id: 'n-ii-3', headline: 'Pentagon confirms casualties at Al Udeid and Al Dhafra air bases', source: 'AP News', credibility: 'verified', timestamp: '2026-03-08T04:30:00Z', url: '#' },
+  { id: 'n-ii-4', headline: 'Iran says strikes on Gulf bases are "legitimate self-defense" against aggression', source: 'Press TV', credibility: 'reliable', timestamp: '2026-03-08T04:00:00Z', url: '#' },
+  { id: 'n-ii-5', headline: 'Gulf states condemn both sides, call for immediate ceasefire', source: 'Al Arabiya', credibility: 'verified', timestamp: '2026-03-08T03:30:00Z', url: '#' },
+  { id: 'n-ii-6', headline: 'Strait of Hormuz partially blocked — oil prices surge past $150/barrel', source: 'Bloomberg', credibility: 'verified', timestamp: '2026-03-08T03:00:00Z', url: '#' },
+  { id: 'n-ii-7', headline: 'Hezbollah launches 100+ rockets into northern Israel; IDF strikes Lebanon', source: 'BBC', credibility: 'verified', timestamp: '2026-03-08T02:00:00Z', url: '#' },
+  { id: 'n-ii-8', headline: 'WHO: Hospitals overwhelmed in Iran, Lebanon; civilian death toll rising on all sides', source: 'WHO', credibility: 'verified', timestamp: '2026-03-08T01:00:00Z', url: '#' },
+  { id: 'n-ii-9', headline: 'Saudi Arabia intercepts Iranian missiles near Prince Sultan Air Base', source: 'SPA', credibility: 'reliable', timestamp: '2026-03-08T00:30:00Z', url: '#' },
+  { id: 'n-ii-10', headline: 'UN Security Council emergency session ends without resolution — Russia, China demand ceasefire', source: 'UN News', credibility: 'verified', timestamp: '2026-03-07T23:00:00Z', url: '#' },
 ];
 
 const ukraineRussiaNews: NewsItem[] = [
