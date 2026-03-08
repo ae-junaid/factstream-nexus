@@ -37,7 +37,6 @@ function extractDomainFromUrl(url: string): string {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return 'unknown'; }
 }
 
-// Simplify query for GDELT - remove sourcelang directive and keep it short
 function simplifyQuery(query: string): string {
   return query
     .replace(/sourcelang:\w+/g, '')
@@ -45,7 +44,6 @@ function simplifyQuery(query: string): string {
     .trim();
 }
 
-// Extract just the key terms for RSS fallback
 function extractKeyTerms(query: string): string {
   return query
     .replace(/sourcelang:\w+/g, '')
@@ -56,6 +54,71 @@ function extractKeyTerms(query: string): string {
     .map(k => k.replace(/"/g, '').trim())
     .filter(Boolean)
     .join(' ');
+}
+
+// Fetch OG image from an article URL by following redirects and parsing HTML
+async function fetchOgImage(url: string): Promise<string> {
+  try {
+    const response = await fetchWithTimeout(url, 5000);
+    if (!response.ok) return '';
+    
+    // Only read first 50KB to find og:image quickly
+    const reader = response.body?.getReader();
+    if (!reader) return '';
+    
+    let html = '';
+    const decoder = new TextDecoder();
+    while (html.length < 50000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      // Check if we've passed the </head> tag
+      if (html.includes('</head>')) break;
+    }
+    reader.cancel();
+
+    // Extract og:image
+    const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i)
+      || html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
+    
+    if (ogMatch?.[1]) {
+      const img = ogMatch[1].replace(/&amp;/g, '&');
+      // Validate it's a real URL
+      if (img.startsWith('http')) return img;
+    }
+    
+    // Try twitter:image as fallback
+    const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i)
+      || html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
+    
+    if (twMatch?.[1]) {
+      const img = twMatch[1].replace(/&amp;/g, '&');
+      if (img.startsWith('http')) return img;
+    }
+
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+// Enrich articles with OG images in parallel (top N only)
+async function enrichWithOgImages(articles: any[], maxEnrich = 10): Promise<any[]> {
+  const toEnrich = articles.slice(0, maxEnrich);
+  const rest = articles.slice(maxEnrich);
+  
+  const enriched = await Promise.all(
+    toEnrich.map(async (article: any) => {
+      if (article.socialimage) return article;
+      const ogImage = await fetchOgImage(article.url);
+      return { ...article, socialimage: ogImage };
+    })
+  );
+  
+  const enrichedCount = enriched.filter((a: any) => a.socialimage).length;
+  console.log(`OG enrichment: ${enrichedCount}/${toEnrich.length} got images`);
+  
+  return [...enriched, ...rest];
 }
 
 Deno.serve(async (req) => {
@@ -100,7 +163,7 @@ Deno.serve(async (req) => {
         try {
           const data = await docResponse.json();
           const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
-          const features = articles.slice(0, 25).map((a: any, i: number) => {
+          const features = articles.slice(0, 25).map((a: any, _i: number) => {
             const loc = extractLocationFromArticle(a.title || '', a.domain || '');
             return {
               type: 'Feature',
@@ -140,7 +203,9 @@ Deno.serve(async (req) => {
         
         if (articles.length > 0) {
           console.log(`GDELT articles: ${articles.length} (${timespan})`);
-          return ok({ articles });
+          // Enrich missing images
+          const enriched = await enrichWithOgImages(articles);
+          return ok({ articles: enriched });
         }
       } catch { /* continue to next timespan */ }
     }
@@ -169,21 +234,21 @@ Deno.serve(async (req) => {
           
           if (articles.length > 0) {
             console.log(`RSS: ${articles.length} articles`);
-            return ok({ articles });
+            const enriched = await enrichWithOgImages(articles);
+            return ok({ articles: enriched });
           }
         }
       } catch { /* continue */ }
     }
 
-    // Fallback 2: Try NewsData.io free tier or direct Google News atom
+    // Fallback 2: Google News Atom feed
     const atomUrl = `https://news.google.com/atom/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US`;
     const atomResponse = await tryFetch(atomUrl, 8000);
     if (atomResponse) {
       try {
         const text = await atomResponse.text();
-        // Parse atom XML entries
         const entries = text.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
-        const articles = entries.slice(0, 20).map((entry: string, i: number) => {
+        const articles = entries.slice(0, 20).map((entry: string) => {
           const titleMatch = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/);
           const linkMatch = entry.match(/<link[^>]*href="([^"]*)"[^>]*\/>/);
           const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
@@ -201,7 +266,9 @@ Deno.serve(async (req) => {
         
         if (articles.length > 0) {
           console.log(`Atom: ${articles.length} articles`);
-          return ok({ articles });
+          // Enrich with OG images
+          const enriched = await enrichWithOgImages(articles);
+          return ok({ articles: enriched });
         }
       } catch { /* continue */ }
     }
