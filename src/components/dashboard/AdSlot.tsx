@@ -14,7 +14,7 @@ const AdSlot = forwardRef<HTMLDivElement, AdSlotProps>(({ format, className = ''
   };
 
   return (
-    <div className={`${sizes[format]} ${className} flex items-center justify-center border border-dashed border-border/50 bg-card/30 rounded`}>
+    <div ref={ref} className={`${sizes[format]} ${className} flex items-center justify-center border border-dashed border-border/50 bg-card/30 rounded`}>
       {/* 
         Replace this placeholder with your Google AdSense code:
         <ins className="adsbygoogle"
