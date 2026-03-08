@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ConflictZone } from '@/lib/conflicts';
-import { ConflictEvent, NewsItem, EventType, SourceCredibility } from '@/data/mockData';
+import { ConflictEvent, NewsItem, EventType, SourceCredibility, mockEvents, mockNews } from '@/data/mockData';
 
 // Map GDELT tones / themes to our event types
 function classifyArticle(title: string): EventType {
@@ -72,11 +72,13 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
         };
       });
 
-      setNews(mapped);
+      setNews(mapped.length > 0 ? mapped : mockNews);
       setError(null);
     } catch (err) {
       console.error('GDELT news fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch');
+      // Use mock data as fallback
+      setNews(prev => prev.length > 0 ? prev : mockNews);
     } finally {
       setLoading(false);
     }
@@ -105,11 +107,13 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
 
       if (fnError) {
         console.warn('GDELT events function error:', fnError.message);
+        setEvents(prev => prev.length > 0 ? prev : mockEvents);
         setLoading(false);
         return;
       }
       if (!data?.success && !data?.data) {
         console.warn('GDELT events returned no data');
+        setEvents(prev => prev.length > 0 ? prev : mockEvents);
         setLoading(false);
         return;
       }
@@ -139,11 +143,13 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
         };
       });
 
-      setEvents(mapped);
+      setEvents(mapped.length > 0 ? mapped : mockEvents);
       setError(null);
     } catch (err) {
       console.error('GDELT events fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch');
+      // Use mock data as fallback
+      setEvents(prev => prev.length > 0 ? prev : mockEvents);
     } finally {
       setLoading(false);
     }
