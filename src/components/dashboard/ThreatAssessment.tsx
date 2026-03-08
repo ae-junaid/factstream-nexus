@@ -52,10 +52,11 @@ const levelPercent: Record<string, number> = {
 
 interface ThreatAssessmentProps {
   conflict: ConflictZone;
+  events?: ConflictEvent[];
+  loading?: boolean;
 }
 
-export default function ThreatAssessment({ conflict }: ThreatAssessmentProps) {
-  const { events, loading } = useGdeltEvents(conflict, 180000);
+export default function ThreatAssessment({ conflict, events = [], loading = false }: ThreatAssessmentProps) {
 
   const threats: ThreatZone[] = useMemo(() => {
     const regionMap: Record<string, number> = {};

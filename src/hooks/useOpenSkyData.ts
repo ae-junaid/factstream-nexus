@@ -43,7 +43,7 @@ export function useOpenSkyFlights(conflict: ConflictZone, refreshInterval = 3000
           originCountry: s[2] || '',
           lat: s[6],
           lng: s[5],
-          altitude: Math.round((s[7] || 0) * 0.3048),
+          altitude: Math.round(s[7] || 0),
           velocity: Math.round((s[9] || 0) * 1.944),
           heading: Math.round(s[10] || 0),
           verticalRate: Math.round((s[11] || 0) * 196.85),

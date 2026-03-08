@@ -30,4 +30,8 @@ const AdSlot = forwardRef<HTMLDivElement, AdSlotProps>(({ format, className = ''
       </div>
     </div>
   );
-}
+});
+
+AdSlot.displayName = 'AdSlot';
+
+export default AdSlot;
