@@ -35,9 +35,9 @@ export default function StatsBanner({ conflict, events = [], news = [] }: StatsB
     return acc;
   }, {} as Record<string, number>);
 
-  const verifiedCount = events.filter(e => e.credibility === 'verified').length;
-  const sourceCount = new Set(events.map(e => e.source)).size;
-  const newsSourceCount = new Set(news.map(n => n.source)).size;
+  const verifiedCount = (events || []).filter(e => e.credibility === 'verified').length;
+  const sourceCount = new Set((events || []).map(e => e.source)).size;
+  const newsSourceCount = new Set((news || []).map(n => n.source)).size;
 
   const stats: LiveStat[] = [
     { label: 'Live Events', value: String(events.length), trend: 'up', source: 'GDELT' },
