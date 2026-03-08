@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       }
 
       // Fallback: use DOC API to generate geo from articles
-      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=72h`;
+      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=1h`;
       const docResponse = await fetchWithRetry(docUrl, 12000, 1);
       
       if (docResponse) {
