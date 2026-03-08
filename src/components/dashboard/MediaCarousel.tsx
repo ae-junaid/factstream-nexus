@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink, Newspaper } from 'lucide-react';
 import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 
 const credBgMap: Record<string, string> = {
@@ -9,6 +9,28 @@ const credBgMap: Record<string, string> = {
   disputed: 'bg-ops-red/20 text-ops-red border-ops-red/30',
 };
 
+// Source-based gradient backgrounds when no image available
+const SOURCE_GRADIENTS: Record<string, string> = {
+  'reuters.com': 'from-orange-900/80 to-orange-950/90',
+  'apnews.com': 'from-red-900/80 to-red-950/90',
+  'bbc.com': 'from-red-800/80 to-zinc-900/90',
+  'bbc.co.uk': 'from-red-800/80 to-zinc-900/90',
+  'aljazeera.com': 'from-amber-900/80 to-amber-950/90',
+  'theguardian.com': 'from-blue-900/80 to-blue-950/90',
+  'cnn.com': 'from-red-900/80 to-red-950/90',
+  'nytimes.com': 'from-neutral-800/80 to-neutral-950/90',
+  'france24.com': 'from-blue-800/80 to-blue-950/90',
+  'timesofisrael.com': 'from-blue-900/80 to-blue-950/90',
+};
+
+function getGradient(source: string): string {
+  const s = source.toLowerCase();
+  for (const [domain, gradient] of Object.entries(SOURCE_GRADIENTS)) {
+    if (s.includes(domain)) return gradient;
+  }
+  return 'from-slate-800/80 to-slate-950/90';
+}
+
 interface MediaCarouselProps {
   news: NewsItem[];
 }
@@ -17,7 +39,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
   const items = (news || []).slice(0, 10);
   const paused = locked || hovering;
@@ -53,10 +75,10 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
 
   const item = items[current];
   const cred = CREDIBILITY_CONFIG[item.credibility];
-  const bgImage = item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null;
+  const hasImage = item.imageUrl && !failedImages.has(current);
 
   const titleParts = item.headline.split(' - ');
-  const realSource = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : item.source.replace('news.google.com', '');
+  const realSource = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : item.source;
   const cleanHeadline = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : item.headline;
 
   return (
@@ -90,18 +112,27 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
         </div>
       </div>
 
-      {/* Background image */}
-      {bgImage && (
+      {/* Background: image or gradient fallback */}
+      {hasImage ? (
         <img
-          src={bgImage}
+          src={item.imageUrl}
           alt={cleanHeadline}
           className="w-full h-full object-cover"
-          onError={() => setFailedImages(prev => new Set(prev).add(item.imageUrl!))}
+          onError={() => setFailedImages(prev => new Set(prev).add(current))}
         />
+      ) : (
+        <div className={`w-full h-full bg-gradient-to-br ${getGradient(item.source)} flex items-center justify-center`}>
+          <div className="text-center opacity-30">
+            <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+              {realSource}
+            </span>
+          </div>
+        </div>
       )}
 
-      {/* Dark overlay on image for readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 space-y-1.5">
