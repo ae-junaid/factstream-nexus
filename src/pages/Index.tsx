@@ -7,7 +7,7 @@ import EventTimeline from '@/components/dashboard/EventTimeline';
 import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
-import AirspaceMonitor from '@/components/dashboard/AirspaceMonitor';
+import ConflictOverview from '@/components/dashboard/ConflictOverview';
 import MaritimeTracker from '@/components/dashboard/MaritimeTracker';
 import AdSlot from '@/components/dashboard/AdSlot';
 import { ConflictProvider, useConflict } from '@/contexts/ConflictContext';
@@ -56,7 +56,7 @@ function DashboardContent() {
             <ThreatAssessment conflict={selectedConflict} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <AirspaceMonitor conflict={selectedConflict} />
+            <ConflictOverview conflict={selectedConflict} events={events} news={news} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <MaritimeTracker conflict={selectedConflict} />

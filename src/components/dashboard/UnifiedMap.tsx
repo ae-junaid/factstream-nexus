@@ -3,8 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
 import { ConflictZone } from '@/lib/conflicts';
-import { useOpenSkyFlights, LiveFlight } from '@/hooks/useOpenSkyData';
-import { Plane, Anchor, Crosshair, Layers, Maximize2, Minimize2, Radio, Loader2 } from 'lucide-react';
+import { Anchor, Crosshair, Layers, Maximize2, Minimize2, Radio } from 'lucide-react';
 
 const eventColorMap: Record<string, string> = {
   'ops-red': '#e04040',
@@ -46,7 +45,7 @@ const MARITIME_DATA: Record<string, Array<{ name: string; type: string; flag: st
   ],
 };
 
-type MapLayer = 'events' | 'flights' | 'maritime';
+type MapLayer = 'events' | 'maritime';
 
 interface UnifiedMapProps {
   events: ConflictEvent[];
@@ -63,13 +62,11 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const layerGroups = useRef<Record<MapLayer, L.LayerGroup>>({
     events: L.layerGroup(),
-    flights: L.layerGroup(),
     maritime: L.layerGroup(),
   });
   const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(new Set(['events', 'maritime']));
 
-  const { flights, loading: flightsLoading } = useOpenSkyFlights(conflict, 30000);
-  const vessels = MARITIME_DATA[conflict.id] || [];
+  const vessels = MARITIME_DATA[conflict?.id] || [];
 
   const toggleLayer = useCallback((layer: MapLayer) => {
     setActiveLayers(prev => {
@@ -169,45 +166,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
     });
   }, [events, onEventSelect]);
 
-  // Flight markers
-  useEffect(() => {
-    const lg = layerGroups.current.flights;
-    lg.clearLayers();
-
-    flights.forEach(flight => {
-      if (!flight.lat || !flight.lng) return;
-      const color = flight.callsign.match(/^(RCH|FORTE|HOMER|DUKE|VIPER|EVIL|RAGE)/i) ? '#e04040' : '#1ac8db';
-
-      const icon = L.divIcon({
-        className: 'flight-marker',
-        html: `<div style="transform:rotate(${flight.heading}deg);color:${color};filter:drop-shadow(0 0 4px ${color}88);">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
-        </div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-      });
-
-      const marker = L.marker([flight.lat, flight.lng], { icon });
-      marker.bindPopup(`
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;min-width:200px;">
-          <div style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #333;">
-            <span style="color:${color};font-size:12px;font-weight:bold;">${flight.callsign || flight.icao24}</span>
-          </div>
-          <table style="width:100%;font-size:9px;">
-            <tr><td style="color:#666;">ICAO24</td><td style="text-align:right;">${flight.icao24}</td></tr>
-            <tr><td style="color:#666;">Country</td><td style="text-align:right;">${flight.originCountry}</td></tr>
-            <tr><td style="color:#666;">Altitude</td><td style="text-align:right;">${Math.round(flight.altitude * 3.281).toLocaleString()} ft</td></tr>
-            <tr><td style="color:#666;">Speed</td><td style="text-align:right;">${flight.velocity} kts</td></tr>
-            <tr><td style="color:#666;">Heading</td><td style="text-align:right;">${flight.heading}°</td></tr>
-            <tr><td style="color:#666;">Squawk</td><td style="text-align:right;">${flight.squawk}</td></tr>
-          </table>
-          <div style="margin-top:6px;padding-top:4px;border-top:1px solid #333;color:#555;font-size:8px;text-align:center;">SOURCE: ADS-B LIVE</div>
-        </div>
-      `);
-      marker.addTo(lg);
-    });
-  }, [flights]);
-
   // Maritime markers
   useEffect(() => {
     const lg = layerGroups.current.maritime;
@@ -270,7 +228,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
 
   const layerButtons: { key: MapLayer; label: string; icon: React.ReactNode; count: number; color: string }[] = [
     { key: 'events', label: 'EVENTS', icon: <Crosshair className="w-3 h-3" />, count: events.length, color: 'text-primary' },
-    { key: 'flights', label: 'ADS-B', icon: <Plane className="w-3 h-3" />, count: flights.length, color: 'text-ops-cyan' },
     { key: 'maritime', label: 'AIS', icon: <Anchor className="w-3 h-3" />, count: vessels.length, color: 'text-ops-blue' },
   ];
 
@@ -337,13 +294,6 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
         </div>
       </div>
 
-      {/* Loading indicator */}
-      {flightsLoading && activeLayers.has('flights') && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[500] bg-card/90 backdrop-blur-sm border border-border rounded px-3 py-1.5 flex items-center gap-2">
-          <Loader2 className="w-3 h-3 text-primary animate-spin" />
-          <span className="text-[9px] text-muted-foreground tracking-wider">LOADING ADS-B...</span>
-        </div>
-      )}
 
       <div ref={mapRef} className="h-full w-full" />
     </div>
