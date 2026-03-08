@@ -29,7 +29,7 @@ export const mockWarMedia: WarMedia[] = [
   {
     id: 'wm-002',
     type: 'video',
-    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1542362567-b07e54358753?w=600&h=340&fit=crop',
     caption: 'Iron Dome intercepts multiple rocket barrage over southern Israel — CCTV footage',
     source: '@IsraelRadar',
