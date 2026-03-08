@@ -21,13 +21,8 @@ function DashboardContent() {
   const { events, loading: eventsLoading } = useGdeltEvents(selectedConflict);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       <div className="scanline-overlay" />
-
-      {/* Left ad rail */}
-      <div className="hidden xl:flex shrink-0 w-[160px] items-start justify-center pt-16 bg-background border-r border-border">
-        <AdSlot format="sidebar" className="sticky top-16" />
-      </div>
 
       {/* Main dashboard */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -43,7 +38,6 @@ function DashboardContent() {
             <div className="flex-1 overflow-hidden">
               <EventTimeline events={events} onEventSelect={setSelectedEvent} loading={eventsLoading} />
             </div>
-            <AdSlot format="inline" className="shrink-0 mx-2 mb-2" />
           </div>
 
           {/* CENTER — Map + Media */}
@@ -62,25 +56,19 @@ function DashboardContent() {
             <div className="min-h-0 overflow-hidden border-b border-border" style={{ flex: '3 1 0%' }}>
               <ConflictOverview conflict={selectedConflict} events={events} news={news} />
             </div>
-            <div className="min-h-0 overflow-hidden border-b border-border" style={{ flex: '2 1 0%' }}>
+            <div className="min-h-0 overflow-hidden" style={{ flex: '2 1 0%' }}>
               <ThreatAssessment conflict={selectedConflict} events={events} loading={eventsLoading} />
             </div>
-            <AdSlot format="inline" className="shrink-0 m-2" />
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Bottom ad banner — larger */}
         <AdSlot format="banner" className="shrink-0 border-t border-border" />
         <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
           <p className="text-[8px] text-muted-foreground text-center tracking-wider">
             LIVE DATA FROM OPEN SOURCES — GDELT · ACLED · OCHA
           </p>
         </footer>
-      </div>
-
-      {/* Right ad rail */}
-      <div className="hidden xl:flex shrink-0 w-[160px] items-start justify-center pt-16 bg-background border-l border-border">
-        <AdSlot format="sidebar" className="sticky top-16" />
       </div>
     </div>
   );
