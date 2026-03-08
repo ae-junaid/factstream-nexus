@@ -60,7 +60,9 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
     );
   }
 
-  const item = items[current];
+  const safeIndex = current < items.length ? current : 0;
+  const item = items[safeIndex];
+  if (!item) return null;
   const { title, source: parsedSource } = cleanHeadline(item.headline);
   const displaySource = parsedSource || item.source;
   const cred = CREDIBILITY_CONFIG[item.credibility];
