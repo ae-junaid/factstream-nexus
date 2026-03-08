@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 
     // === ARTICLE MODE ===
     // Try GDELT first with retry
-    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=48h`;
+    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=1h`;
     console.log('Fetching GDELT articles');
 
     const gdeltResponse = await fetchWithRetry(gdeltUrl, 12000, 2);

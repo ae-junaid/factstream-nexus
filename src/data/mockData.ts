@@ -20,6 +20,7 @@ export interface NewsItem {
   credibility: SourceCredibility;
   timestamp: string;
   url: string;
+  imageUrl?: string;
 }
 
 export interface HumanitarianStat {
