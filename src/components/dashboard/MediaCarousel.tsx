@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { WarMedia, MediaCredibility } from '@/data/mediaData';
 import { CREDIBILITY_CONFIG } from '@/data/mockData';
 
@@ -16,7 +16,10 @@ interface MediaCarouselProps {
 
 export default function MediaCarousel({ media }: MediaCarouselProps) {
   const [current, setCurrent] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [hovering, setHovering] = useState(false);
+
+  const paused = locked || hovering;
 
   const next = useCallback(() => {
     setCurrent((c) => (c + 1) % media.length);
@@ -39,8 +42,8 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
   return (
     <div
       className="relative w-full h-full bg-card/50 overflow-hidden group"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
     >
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-1.5 bg-gradient-to-b from-background/90 to-transparent">
@@ -50,9 +53,21 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
             OSINT MEDIA FEED
           </span>
         </div>
-        <span className="text-[9px] text-muted-foreground font-mono">
-          {current + 1}/{media.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setLocked((l) => !l)}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-background/60 hover:bg-secondary/80 transition-colors"
+            title={locked ? 'Resume auto-slide' : 'Pause auto-slide'}
+          >
+            {locked ? <Play className="w-3 h-3 text-ops-green" /> : <Pause className="w-3 h-3 text-ops-amber" />}
+            <span className="text-[8px] font-bold tracking-wider text-muted-foreground">
+              {locked ? 'PLAY' : 'PAUSE'}
+            </span>
+          </button>
+          <span className="text-[9px] text-muted-foreground font-mono">
+            {current + 1}/{media.length}
+          </span>
+        </div>
       </div>
 
       {/* Media */}
