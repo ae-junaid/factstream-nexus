@@ -131,16 +131,35 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    const isDark = !document.documentElement.classList.contains('light');
+    const tileUrl = isDark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+    const tileLayer = L.tileLayer(tileUrl, {
       maxZoom: 19,
       subdomains: 'abcd',
     }).addTo(map);
+    tileLayerRef.current = tileLayer;
 
     Object.values(layerGroups.current).forEach(lg => lg.addTo(map));
     mapInstance.current = map;
     setTimeout(() => map.invalidateSize(), 100);
 
+    // Watch for theme changes
+    const observer = new MutationObserver(() => {
+      const isNowDark = !document.documentElement.classList.contains('light');
+      const newUrl = isNowDark
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      if (tileLayerRef.current) {
+        tileLayerRef.current.setUrl(newUrl);
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     return () => {
+      observer.disconnect();
       map.remove();
       mapInstance.current = null;
     };

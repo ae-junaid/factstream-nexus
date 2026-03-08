@@ -25,7 +25,7 @@ export default function StatsBanner({ stats }: StatsBannerProps) {
           <Activity className="w-3 h-3 text-primary" />
           <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">SITREP</span>
         </div>
-        <div className="flex-1 flex items-center gap-0 overflow-x-auto">
+        <div className="flex-1 flex items-center gap-0 overflow-hidden">
           {stats.map((stat) => {
             const Icon = trendIcon[stat.trend];
             return (
