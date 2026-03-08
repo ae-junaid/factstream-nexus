@@ -77,6 +77,7 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
           credibility: assessCredibility(domain),
           timestamp: a.seendate ? new Date(a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString() : new Date().toISOString(),
           url: a.url,
+          imageUrl: a.socialimage || undefined,
         };
       });
 
