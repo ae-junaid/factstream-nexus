@@ -1,43 +1,66 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
-import { WarMedia, MediaCredibility } from '@/data/mediaData';
-import { CREDIBILITY_CONFIG } from '@/data/mockData';
+import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink } from 'lucide-react';
+import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 
-const credBgMap: Record<MediaCredibility, string> = {
+const credBgMap: Record<string, string> = {
   verified: 'bg-ops-green/20 text-ops-green border-ops-green/30',
   reliable: 'bg-ops-cyan/20 text-ops-cyan border-ops-cyan/30',
   unconfirmed: 'bg-ops-amber/20 text-ops-amber border-ops-amber/30',
   disputed: 'bg-ops-red/20 text-ops-red border-ops-red/30',
 };
 
+// News thumbnails from unsplash based on keywords
+const conflictImages = [
+  'https://images.unsplash.com/photo-1590081543655-f3c3c1a56d73?w=600&h=340&fit=crop',
+  'https://images.unsplash.com/photo-1542362567-b07e54358753?w=600&h=340&fit=crop',
+  'https://images.unsplash.com/photo-1580130379624-3a069adbffc5?w=600&h=340&fit=crop',
+  'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=600&h=340&fit=crop',
+  'https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=600&h=340&fit=crop',
+];
+
 interface MediaCarouselProps {
-  media: WarMedia[];
+  news: NewsItem[];
 }
 
-export default function MediaCarousel({ media }: MediaCarouselProps) {
+export default function MediaCarousel({ news }: MediaCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hovering, setHovering] = useState(false);
 
+  const items = news.slice(0, 10);
   const paused = locked || hovering;
 
   const next = useCallback(() => {
-    setCurrent((c) => (c + 1) % media.length);
-  }, [media.length]);
+    if (items.length === 0) return;
+    setCurrent((c) => (c + 1) % items.length);
+  }, [items.length]);
 
   const prev = useCallback(() => {
-    setCurrent((c) => (c - 1 + media.length) % media.length);
-  }, [media.length]);
+    if (items.length === 0) return;
+    setCurrent((c) => (c - 1 + items.length) % items.length);
+  }, [items.length]);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || items.length === 0) return;
     const timer = setInterval(next, 5000);
     return () => clearInterval(timer);
-  }, [paused, next]);
+  }, [paused, next, items.length]);
 
-  const item = media[current];
-  if (!item) return null;
+  useEffect(() => {
+    setCurrent(0);
+  }, [news]);
+
+  if (items.length === 0) {
+    return (
+      <div className="w-full h-full bg-card/50 flex items-center justify-center">
+        <span className="text-[10px] text-muted-foreground tracking-wider">LOADING MEDIA FEED...</span>
+      </div>
+    );
+  }
+
+  const item = items[current];
   const cred = CREDIBILITY_CONFIG[item.credibility];
+  const bgImage = conflictImages[current % conflictImages.length];
 
   return (
     <div
@@ -50,7 +73,7 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-red pulse-dot" />
           <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">
-            OSINT MEDIA FEED
+            LIVE NEWS FEED
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -65,59 +88,43 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
             </span>
           </button>
           <span className="text-[9px] text-muted-foreground font-mono">
-            {current + 1}/{media.length}
+            {current + 1}/{items.length}
           </span>
         </div>
       </div>
 
-      {/* Media */}
-      {item.type === 'video' && item.url !== '#' ? (
-        <div className="w-full h-full relative">
-          <video
-            key={item.id}
-            src={item.url}
-            poster={item.thumbnail}
-            className="w-full h-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-          <span className="absolute top-8 right-2 text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-ops-red/80 text-destructive-foreground">
-            LIVE VIDEO
-          </span>
-        </div>
-      ) : (
-        <img
-          src={item.thumbnail}
-          alt={item.caption}
-          className="w-full h-full object-cover transition-opacity duration-500"
-        />
-      )}
+      {/* Background image */}
+      <img
+        src={bgImage}
+        alt=""
+        className="w-full h-full object-cover transition-opacity duration-500"
+      />
 
       {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 space-y-1.5">
-        {/* Credibility + source */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border ${credBgMap[item.credibility]}`}>
             {cred.label}
           </span>
           <span className="text-[10px] text-muted-foreground font-mono">
-            {item.source} · {item.platform}
+            {item.source}
           </span>
-          {item.location && (
-            <span className="text-[10px] text-ops-cyan/70 font-mono">
-              📍 {item.location}
-            </span>
-          )}
+          <span className="text-[10px] text-muted-foreground font-mono">
+            {new Date(item.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </span>
         </div>
-        {/* Caption */}
-        <p className="text-[11px] text-foreground/90 leading-tight line-clamp-2">
-          {item.caption}
-        </p>
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-[11px] text-foreground/90 leading-tight line-clamp-2 hover:text-primary transition-colors"
+        >
+          {item.headline}
+          <ExternalLink className="inline w-3 h-3 ml-1 opacity-50" />
+        </a>
       </div>
 
       {/* Navigation arrows */}
@@ -136,7 +143,7 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
 
       {/* Progress dots */}
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center gap-1 pb-1">
-        {media.map((_, i) => (
+        {items.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}

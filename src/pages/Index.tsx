@@ -9,18 +9,23 @@ import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
 import AirspaceMonitor from '@/components/dashboard/AirspaceMonitor';
 import AdSlot from '@/components/dashboard/AdSlot';
-import { mockEvents, mockNews, mockStats, ConflictEvent } from '@/data/mockData';
-import { mockWarMedia } from '@/data/mediaData';
+import { ConflictProvider, useConflict } from '@/contexts/ConflictContext';
+import { useGdeltNews, useGdeltEvents } from '@/hooks/useGdeltData';
+import { ConflictEvent } from '@/data/mockData';
 
-const Index = () => {
+function DashboardContent() {
   const [selectedEvent, setSelectedEvent] = useState<ConflictEvent | null>(null);
+  const { selectedConflict } = useConflict();
+
+  const { news, loading: newsLoading } = useGdeltNews(selectedConflict);
+  const { events, loading: eventsLoading } = useGdeltEvents(selectedConflict);
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <div className="scanline-overlay" />
       <DashboardHeader />
-      <NewsTicker news={mockNews} />
-      <StatsBanner stats={mockStats} />
+      <NewsTicker news={news} loading={newsLoading} />
+      <StatsBanner conflict={selectedConflict} events={events} news={news} />
 
       {/* Main content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0 overflow-auto lg:overflow-hidden">
@@ -28,29 +33,29 @@ const Index = () => {
         {/* LEFT — Event Timeline */}
         <div className="lg:col-span-3 flex flex-col min-h-[300px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border bg-card">
           <div className="flex-1 overflow-hidden">
-            <EventTimeline events={mockEvents} onEventSelect={setSelectedEvent} />
+            <EventTimeline events={events} onEventSelect={setSelectedEvent} loading={eventsLoading} />
           </div>
           <AdSlot format="inline" className="shrink-0 mx-2 mb-2" />
         </div>
 
-        {/* CENTER — Map + Media (equal split) */}
+        {/* CENTER — Map + Media */}
         <div className="lg:col-span-5 flex flex-col min-h-[500px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border">
           <div className="flex-1 relative min-h-0">
-            <UnifiedMap events={mockEvents} onEventSelect={setSelectedEvent} />
+            <UnifiedMap events={events} onEventSelect={setSelectedEvent} conflict={selectedConflict} />
             <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
           </div>
           <div className="flex-1 border-t border-border min-h-0">
-            <MediaCarousel media={mockWarMedia} />
+            <MediaCarousel news={news} />
           </div>
         </div>
 
-        {/* RIGHT — Intel panels + Ad */}
+        {/* RIGHT — Intel panels */}
         <div className="lg:col-span-4 flex flex-col min-h-[300px] lg:min-h-0 bg-card">
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <ThreatAssessment />
+            <ThreatAssessment conflict={selectedConflict} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <AirspaceMonitor />
+            <AirspaceMonitor conflict={selectedConflict} />
           </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
         </div>
@@ -61,11 +66,17 @@ const Index = () => {
 
       <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          DATA AGGREGATED FROM OPEN SOURCES — REUTERS · AP · BBC · AL JAZEERA · OCHA · ACLED · GDELT · ADS-B EXCHANGE · OPENSKY NETWORK · MARINETRAFFIC (FREE)
+          LIVE DATA FROM OPEN SOURCES — GDELT · OPENSKY NETWORK · ACLED · OCHA · ADS-B EXCHANGE · MARINETRAFFIC (FREE)
         </p>
       </footer>
     </div>
   );
-};
+}
+
+const Index = () => (
+  <ConflictProvider>
+    <DashboardContent />
+  </ConflictProvider>
+);
 
 export default Index;
