@@ -8,6 +8,7 @@ import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
 import AirspaceMonitor from '@/components/dashboard/AirspaceMonitor';
+import MaritimeTracker from '@/components/dashboard/MaritimeTracker';
 import AdSlot from '@/components/dashboard/AdSlot';
 import { ConflictProvider, useConflict } from '@/contexts/ConflictContext';
 import { useGdeltNews, useGdeltEvents } from '@/hooks/useGdeltData';
@@ -57,16 +58,18 @@ function DashboardContent() {
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <AirspaceMonitor conflict={selectedConflict} />
           </div>
+          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
+            <MaritimeTracker />
+          </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
         </div>
       </div>
 
-      {/* Footer ad banner */}
+      {/* Footer */}
       <AdSlot format="banner" className="shrink-0 border-t border-border" />
-
       <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          LIVE DATA FROM OPEN SOURCES — GDELT · ADSB.LOL · ACLED · OCHA · ADS-B EXCHANGE · MARINETRAFFIC (FREE)
+          LIVE DATA FROM OPEN SOURCES — GDELT · ADS-B · AIS · ACLED · OCHA
         </p>
       </footer>
     </div>

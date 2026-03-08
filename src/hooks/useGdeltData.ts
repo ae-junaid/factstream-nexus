@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { ConflictZone } from '@/lib/conflicts';
 import { ConflictEvent, NewsItem, EventType, SourceCredibility, mockEvents, mockNews } from '@/data/mockData';
 
-// Map GDELT tones / themes to our event types
 function classifyArticle(title: string): EventType {
   const t = title.toLowerCase();
   if (t.includes('airstrike') || t.includes('air strike') || t.includes('bombing') || t.includes('bomb')) return 'airstrike';
@@ -34,6 +33,14 @@ function extractDomain(url: string): string {
   }
 }
 
+// Check if text is primarily English (ASCII characters)
+function isEnglishText(text: string): boolean {
+  if (!text) return false;
+  const asciiChars = text.replace(/[^a-zA-Z]/g, '').length;
+  const totalChars = text.replace(/[\s\d\W]/g, '').length;
+  return totalChars === 0 || (asciiChars / totalChars) > 0.7;
+}
+
 export interface GdeltArticle {
   url: string;
   title: string;
@@ -45,7 +52,7 @@ export interface GdeltArticle {
 }
 
 export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
-  const [news, setNews] = useState<NewsItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>(mockNews);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,12 +62,20 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
         body: { query: conflict.gdeltQuery, mode: 'articles' },
       });
 
-      if (fnError) throw new Error(fnError.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to fetch news');
+      if (fnError) {
+        console.warn('GDELT news error:', fnError.message);
+        setLoading(false);
+        return;
+      }
 
-      const articles: GdeltArticle[] = data.data?.articles || [];
+      const articles: GdeltArticle[] = data?.data?.articles || [];
       
-      const mapped: NewsItem[] = articles.slice(0, 25).map((a, i) => {
+      // Filter English-only articles
+      const englishArticles = articles.filter(a => 
+        (!a.language || a.language === 'English') && isEnglishText(a.title)
+      );
+
+      const mapped: NewsItem[] = englishArticles.slice(0, 25).map((a, i) => {
         const domain = extractDomain(a.url);
         return {
           id: `gdelt-n-${i}-${Date.now()}`,
@@ -75,10 +90,8 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
       setNews(mapped.length > 0 ? mapped : mockNews);
       setError(null);
     } catch (err) {
-      console.error('GDELT news fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch');
-      // Use mock data as fallback
-      setNews(prev => prev.length > 0 ? prev : mockNews);
+      console.warn('GDELT news fetch error:', err);
+      // Keep existing data or use mock
     } finally {
       setLoading(false);
     }
@@ -95,7 +108,7 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
 }
 
 export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000) {
-  const [events, setEvents] = useState<ConflictEvent[]>([]);
+  const [events, setEvents] = useState<ConflictEvent[]>(mockEvents);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,25 +119,18 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
       });
 
       if (fnError) {
-        console.warn('GDELT events function error:', fnError.message);
-        setEvents(prev => prev.length > 0 ? prev : mockEvents);
-        setLoading(false);
-        return;
-      }
-      if (!data?.success && !data?.data) {
-        console.warn('GDELT events returned no data');
-        setEvents(prev => prev.length > 0 ? prev : mockEvents);
+        console.warn('GDELT events error:', fnError.message);
         setLoading(false);
         return;
       }
 
-      const features = data.data?.features || [];
+      const features = data?.data?.features || [];
       
       const mapped: ConflictEvent[] = features.slice(0, 30).map((f: any, i: number) => {
         const props = f.properties || {};
         const coords = f.geometry?.coordinates || [0, 0];
         const title = props.name || props.html || `Event in ${conflict.shortLabel} region`;
-        const domain = props.url ? extractDomain(props.url) : 'GDELT';
+        const domain = props.url ? extractDomain(props.url) : props.domain || 'GDELT';
         
         return {
           id: `gdelt-e-${i}-${Date.now()}`,
@@ -135,21 +141,19 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
           location: {
             lat: coords[1] || coords[0],
             lng: coords[0] || coords[1],
-            name: props.name || `${coords[1]?.toFixed(2)}°N, ${coords[0]?.toFixed(2)}°E`,
+            name: props.name?.substring(0, 50) || `${coords[1]?.toFixed(2)}°N, ${coords[0]?.toFixed(2)}°E`,
           },
           source: domain,
           credibility: assessCredibility(domain),
           casualties: undefined,
         };
-      });
+      }).filter((e: ConflictEvent) => isEnglishText(e.title));
 
       setEvents(mapped.length > 0 ? mapped : mockEvents);
       setError(null);
     } catch (err) {
-      console.error('GDELT events fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch');
-      // Use mock data as fallback
-      setEvents(prev => prev.length > 0 ? prev : mockEvents);
+      console.warn('GDELT events fetch error:', err);
+      // Keep existing data or use mock
     } finally {
       setLoading(false);
     }
