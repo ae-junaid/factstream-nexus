@@ -55,12 +55,30 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
         </span>
       </div>
 
-      {/* Image */}
-      <img
-        src={item.thumbnail}
-        alt={item.caption}
-        className="w-full h-full object-cover transition-opacity duration-500"
-      />
+      {/* Media */}
+      {item.type === 'video' && item.url !== '#' ? (
+        <div className="w-full h-full relative">
+          <img
+            src={item.thumbnail}
+            alt={item.caption}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-background/70 border border-primary/50 flex items-center justify-center backdrop-blur-sm">
+              <span className="text-primary ml-0.5">▶</span>
+            </div>
+          </div>
+          <span className="absolute top-8 right-2 text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-ops-red/80 text-white">
+            VIDEO
+          </span>
+        </div>
+      ) : (
+        <img
+          src={item.thumbnail}
+          alt={item.caption}
+          className="w-full h-full object-cover transition-opacity duration-500"
+        />
+      )}
 
       {/* Overlay gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
