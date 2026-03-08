@@ -175,4 +175,10 @@ export const mockStats: HumanitarianStat[] = [
   { label: 'Ceasefire Violations', value: '47', change: '+12', trend: 'up', source: 'UN Monitors', lastUpdated: '2026-03-07' },
   { label: 'Hospitals Operational', value: '11/36', change: '-2', trend: 'down', source: 'WHO', lastUpdated: '2026-03-07' },
   { label: 'Internet Blackouts', value: '3', change: '+1', trend: 'up', source: 'NetBlocks', lastUpdated: '2026-03-07' },
+  { label: 'Civilian Casualties (7d)', value: '342', change: '+58', trend: 'up', source: 'OCHA', lastUpdated: '2026-03-07' },
+  { label: 'Shelters at Capacity', value: '89%', change: '+7%', trend: 'up', source: 'UNRWA', lastUpdated: '2026-03-07' },
+  { label: 'Water Access', value: '23%', change: '-5%', trend: 'down', source: 'UNICEF', lastUpdated: '2026-03-07' },
+  { label: 'Schools Closed', value: '247', change: '+18', trend: 'up', source: 'UNESCO', lastUpdated: '2026-03-07' },
+  { label: 'Press Freedom Index', value: 'CRITICAL', change: '-3pts', trend: 'down', source: 'RSF', lastUpdated: '2026-03-07' },
+  { label: 'Drone Incidents (24h)', value: '19', change: '+4', trend: 'up', source: 'ADS-B Exchange', lastUpdated: '2026-03-07' },
 ];
