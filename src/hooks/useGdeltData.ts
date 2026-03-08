@@ -141,11 +141,13 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
         };
       });
 
-      setEvents(mapped);
+      setEvents(mapped.length > 0 ? mapped : mockEvents);
       setError(null);
     } catch (err) {
       console.error('GDELT events fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch');
+      // Use mock data as fallback
+      setEvents(prev => prev.length > 0 ? prev : mockEvents);
     } finally {
       setLoading(false);
     }
