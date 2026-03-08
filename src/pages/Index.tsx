@@ -8,6 +8,7 @@ import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
 import AirspaceMonitor from '@/components/dashboard/AirspaceMonitor';
+import AdSlot from '@/components/dashboard/AdSlot';
 import { mockEvents, mockNews, mockStats, ConflictEvent } from '@/data/mockData';
 import { mockWarMedia } from '@/data/mediaData';
 
@@ -21,39 +22,46 @@ const Index = () => {
       <NewsTicker news={mockNews} />
       <StatsBanner stats={mockStats} />
 
-      {/* Main 3-column grid */}
+      {/* Main content */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0 overflow-auto lg:overflow-hidden">
 
         {/* LEFT — Event Timeline */}
         <div className="lg:col-span-3 flex flex-col min-h-[300px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border bg-card">
-          <EventTimeline events={mockEvents} onEventSelect={setSelectedEvent} />
+          <div className="flex-1 overflow-hidden">
+            <EventTimeline events={mockEvents} onEventSelect={setSelectedEvent} />
+          </div>
+          <AdSlot format="inline" className="shrink-0 mx-2 mb-2" />
         </div>
 
-        {/* CENTER — Map + Media */}
-        <div className="lg:col-span-5 flex flex-col min-h-[350px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border">
-          <div className="flex-1 relative min-h-[250px] lg:min-h-0">
+        {/* CENTER — Map + Media (equal split) */}
+        <div className="lg:col-span-5 flex flex-col min-h-[500px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border">
+          <div className="flex-1 relative min-h-0">
             <UnifiedMap events={mockEvents} onEventSelect={setSelectedEvent} />
             <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
           </div>
-          <div className="h-36 sm:h-40 border-t border-border shrink-0">
+          <div className="flex-1 border-t border-border min-h-0">
             <MediaCarousel media={mockWarMedia} />
           </div>
         </div>
 
-        {/* RIGHT — Threat + Airspace */}
+        {/* RIGHT — Intel panels + Ad */}
         <div className="lg:col-span-4 flex flex-col min-h-[300px] lg:min-h-0 bg-card">
-          <div className="flex-1 min-h-[200px] lg:min-h-0 overflow-hidden border-b border-border">
+          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <ThreatAssessment />
           </div>
-          <div className="flex-1 min-h-[200px] lg:min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <AirspaceMonitor />
           </div>
+          <AdSlot format="sidebar" className="shrink-0 m-2" />
         </div>
       </div>
 
+      {/* Footer ad banner */}
+      <AdSlot format="banner" className="shrink-0 border-t border-border" />
+
       <footer className="px-4 py-1 border-t border-border bg-card/30 shrink-0">
         <p className="text-[8px] text-muted-foreground text-center tracking-wider">
-          DATA AGGREGATED FROM OPEN SOURCES — REUTERS · AP · BBC · AL JAZEERA · OCHA · ACLED · GDELT · ADS-B EXCHANGE · MARINETRAFFIC · OPENSKY
+          DATA AGGREGATED FROM OPEN SOURCES — REUTERS · AP · BBC · AL JAZEERA · OCHA · ACLED · GDELT · ADS-B EXCHANGE · OPENSKY NETWORK · MARINETRAFFIC (FREE)
         </p>
       </footer>
     </div>
