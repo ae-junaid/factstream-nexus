@@ -56,7 +56,7 @@ function DashboardContent() {
             <ThreatAssessment conflict={selectedConflict} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
-            <AirspaceMonitor conflict={selectedConflict} />
+            <ConflictOverview conflict={selectedConflict} events={events} news={news} />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
             <MaritimeTracker conflict={selectedConflict} />
