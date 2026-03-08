@@ -4,28 +4,38 @@ import 'leaflet/dist/leaflet.css';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
 import { Plane, Anchor, Radio, Crosshair, Layers, AlertTriangle } from 'lucide-react';
 
-// ── Flight mock data ──
+// ── Flight mock data (FR24-style detail) ──
 interface FlightData {
   id: string;
   callsign: string;
   type: string;
+  registration: string;
+  icao24: string;
   lat: number;
   lng: number;
   altitude: string;
+  altitudeFt: number;
   speed: string;
+  groundSpeed: number;
   heading: number;
+  verticalRate: string;
+  squawk: string;
   origin: string;
+  originICAO: string;
+  destination: string;
+  destinationICAO: string;
   status: 'active' | 'alert';
   category: 'military' | 'surveillance' | 'cargo' | 'tanker';
+  operator: string;
 }
 
 const mockFlights: FlightData[] = [
-  { id: 'f1', callsign: 'FORTE12', type: 'RQ-4B Global Hawk', lat: 34.2, lng: 33.8, altitude: 'FL550', speed: '310 kts', heading: 135, origin: 'Sigonella', status: 'active', category: 'surveillance' },
-  { id: 'f2', callsign: 'HOMER71', type: 'RC-135W Rivet Joint', lat: 36.1, lng: 34.5, altitude: 'FL340', speed: '420 kts', heading: 90, origin: 'RAF Mildenhall', status: 'active', category: 'surveillance' },
-  { id: 'f3', callsign: 'LAGR223', type: 'KC-135R Stratotanker', lat: 33.8, lng: 36.2, altitude: 'FL280', speed: '380 kts', heading: 150, origin: 'RAF Fairford', status: 'active', category: 'tanker' },
-  { id: 'f4', callsign: 'RCH4501', type: 'C-17A Globemaster', lat: 35.5, lng: 38.0, altitude: 'FL310', speed: '450 kts', heading: 90, origin: 'Ramstein', status: 'active', category: 'cargo' },
-  { id: 'f5', callsign: 'DUKE01', type: 'F-15E Strike Eagle', lat: 32.5, lng: 35.0, altitude: 'FL250', speed: '520 kts', heading: 180, origin: 'RAF Lakenheath', status: 'alert', category: 'military' },
-  { id: 'f6', callsign: 'VIPER22', type: 'F-16C Fighting Falcon', lat: 37.0, lng: 35.3, altitude: 'FL220', speed: '490 kts', heading: 145, origin: 'Incirlik', status: 'active', category: 'military' },
+  { id: 'f1', callsign: 'FORTE12', type: 'Northrop Grumman RQ-4B Global Hawk', registration: '11-2046', icao24: 'AE4A26', lat: 34.2, lng: 33.8, altitude: 'FL550', altitudeFt: 55000, speed: '310 kts', groundSpeed: 310, heading: 135, verticalRate: '0 ft/min', squawk: '—', origin: 'NAS Sigonella', originICAO: 'LICZ', destination: 'Patrol Orbit', destinationICAO: '—', status: 'active', category: 'surveillance', operator: 'USAF 99th RS' },
+  { id: 'f2', callsign: 'HOMER71', type: 'Boeing RC-135W Rivet Joint', registration: '62-4138', icao24: 'AE01CE', lat: 36.1, lng: 34.5, altitude: 'FL340', altitudeFt: 34000, speed: '420 kts', groundSpeed: 420, heading: 90, verticalRate: '+120 ft/min', squawk: '6712', origin: 'RAF Mildenhall', originICAO: 'EGUN', destination: 'Patrol Orbit', destinationICAO: '—', status: 'active', category: 'surveillance', operator: 'USAF 55th Wing' },
+  { id: 'f3', callsign: 'LAGR223', type: 'Boeing KC-135R Stratotanker', registration: '58-0093', icao24: 'AE0963', lat: 33.8, lng: 36.2, altitude: 'FL280', altitudeFt: 28000, speed: '380 kts', groundSpeed: 380, heading: 150, verticalRate: '0 ft/min', squawk: '0363', origin: 'RAF Fairford', originICAO: 'EGVA', destination: 'Tanker Track', destinationICAO: '—', status: 'active', category: 'tanker', operator: 'USAF 100th ARW' },
+  { id: 'f4', callsign: 'RCH4501', type: 'Boeing C-17A Globemaster III', registration: '05-5146', icao24: 'AE114D', lat: 35.5, lng: 38.0, altitude: 'FL310', altitudeFt: 31000, speed: '450 kts', groundSpeed: 450, heading: 90, verticalRate: '-200 ft/min', squawk: '2541', origin: 'Ramstein AB', originICAO: 'ETAR', destination: 'Al Udeid AB', destinationICAO: 'OTBH', status: 'active', category: 'cargo', operator: 'USAF AMC' },
+  { id: 'f5', callsign: 'DUKE01', type: 'McDonnell Douglas F-15E Strike Eagle', registration: '91-0316', icao24: 'AE0F1A', lat: 32.5, lng: 35.0, altitude: 'FL250', altitudeFt: 25000, speed: '520 kts', groundSpeed: 520, heading: 180, verticalRate: '-500 ft/min', squawk: '7401', origin: 'RAF Lakenheath', originICAO: 'EGUL', destination: '—', destinationICAO: '—', status: 'alert', category: 'military', operator: 'USAF 48th FW' },
+  { id: 'f6', callsign: 'VIPER22', type: 'General Dynamics F-16C Fighting Falcon', registration: '93-0540', icao24: 'AE1053', lat: 37.0, lng: 35.3, altitude: 'FL220', altitudeFt: 22000, speed: '490 kts', groundSpeed: 490, heading: 145, verticalRate: '+300 ft/min', squawk: '6355', origin: 'Incirlik AB', originICAO: 'LTAG', destination: '—', destinationICAO: '—', status: 'active', category: 'military', operator: 'USAF 39th ABW' },
 ];
 
 // ── Maritime mock data ──
@@ -34,21 +44,26 @@ interface VesselData {
   name: string;
   type: string;
   flag: string;
+  mmsi: string;
+  imo: string;
   lat: number;
   lng: number;
   status: 'underway' | 'anchored' | 'blocked' | 'diverted';
   heading: number;
   speed: string;
+  draught: string;
+  destination: string;
+  eta: string;
   note?: string;
 }
 
 const mockVessels: VesselData[] = [
-  { id: 'v1', name: 'MSC ANNA', type: 'Container Ship', flag: '🇱🇷', lat: 12.8, lng: 43.3, status: 'diverted', heading: 315, speed: '14.2 kts', note: 'Diverted — Houthi threat' },
-  { id: 'v2', name: 'USS EISENHOWER', type: 'CVN-69', flag: '🇺🇸', lat: 33.5, lng: 32.0, status: 'underway', heading: 90, speed: '18.5 kts' },
-  { id: 'v3', name: 'EVER GIVEN', type: 'Container Ship', flag: '🇵🇦', lat: 31.25, lng: 32.31, status: 'anchored', heading: 0, speed: '0 kts', note: 'Holding — Suez transit delayed' },
-  { id: 'v4', name: 'INS KOLKATA', type: 'Destroyer (D63)', flag: '🇮🇳', lat: 12.5, lng: 45.0, status: 'underway', heading: 270, speed: '22.1 kts', note: 'Anti-piracy patrol' },
-  { id: 'v5', name: 'STENA IMPERO', type: 'Tanker', flag: '🇬🇧', lat: 26.6, lng: 56.2, status: 'blocked', heading: 0, speed: '0 kts', note: 'IRGC interdiction zone' },
-  { id: 'v6', name: 'JS IZUMO', type: 'DDH-183', flag: '🇯🇵', lat: 18.0, lng: 60.0, status: 'underway', heading: 315, speed: '16.8 kts' },
+  { id: 'v1', name: 'MSC ANNA', type: 'Container Ship', flag: '🇱🇷', mmsi: '636021585', imo: '9839430', lat: 12.8, lng: 43.3, status: 'diverted', heading: 315, speed: '14.2 kts', draught: '14.5m', destination: 'JEDDAH', eta: 'Mar 10', note: 'Diverted — Houthi threat zone' },
+  { id: 'v2', name: 'USS EISENHOWER', type: 'CVN-69 Aircraft Carrier', flag: '🇺🇸', mmsi: '369970069', imo: '—', lat: 33.5, lng: 32.0, status: 'underway', heading: 90, speed: '18.5 kts', draught: '11.3m', destination: 'PATROL', eta: '—' },
+  { id: 'v3', name: 'EVER GIVEN', type: 'Container Ship', flag: '🇵🇦', mmsi: '353136000', imo: '9811000', lat: 31.25, lng: 32.31, status: 'anchored', heading: 0, speed: '0 kts', draught: '16.0m', destination: 'ROTTERDAM', eta: 'Delayed', note: 'Holding — Suez transit delayed' },
+  { id: 'v4', name: 'INS KOLKATA', type: 'Destroyer (D63)', flag: '🇮🇳', mmsi: '419000063', imo: '—', lat: 12.5, lng: 45.0, status: 'underway', heading: 270, speed: '22.1 kts', draught: '6.5m', destination: 'PATROL', eta: '—', note: 'Anti-piracy patrol' },
+  { id: 'v5', name: 'STENA IMPERO', type: 'Oil/Chemical Tanker', flag: '🇬🇧', mmsi: '235095242', imo: '9797400', lat: 26.6, lng: 56.2, status: 'blocked', heading: 0, speed: '0 kts', draught: '13.2m', destination: 'FUJAIRAH', eta: 'N/A', note: 'IRGC interdiction zone' },
+  { id: 'v6', name: 'JS IZUMO', type: 'DDH-183 Helicopter Carrier', flag: '🇯🇵', mmsi: '431999183', imo: '—', lat: 18.0, lng: 60.0, status: 'underway', heading: 315, speed: '16.8 kts', draught: '7.3m', destination: 'PATROL', eta: '—' },
 ];
 
 const eventColorMap: Record<string, string> = {
@@ -89,7 +104,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
     maritime: L.layerGroup(),
   });
   const [activeLayers, setActiveLayers] = useState<Set<MapLayer>>(new Set(['events']));
-  const [stats, setStats] = useState({ events: events.length, flights: mockFlights.length, vessels: mockVessels.length });
+  const [stats] = useState({ events: events.length, flights: mockFlights.length, vessels: mockVessels.length });
 
   const toggleLayer = useCallback((layer: MapLayer) => {
     setActiveLayers(prev => {
@@ -118,9 +133,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
       subdomains: 'abcd',
     }).addTo(map);
 
-    // Add all layer groups to map
     Object.values(layerGroups.current).forEach(lg => lg.addTo(map));
-
     mapInstance.current = map;
     setTimeout(() => map.invalidateSize(), 100);
 
@@ -148,7 +161,6 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
       });
 
       const marker = L.marker([event.location.lat, event.location.lng], { icon });
-      
       const formatTime = (ts: string) => new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
       marker.bindPopup(`
@@ -177,18 +189,17 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
     });
   }, [events, onEventSelect]);
 
-  // Populate flight markers
+  // Populate flight markers — FR24-style popups
   useEffect(() => {
     const lg = layerGroups.current.flights;
     lg.clearLayers();
 
     mockFlights.forEach(flight => {
       const color = flightCategoryColor[flight.category];
-      const rotation = flight.heading;
 
       const icon = L.divIcon({
         className: 'flight-marker',
-        html: `<div style="transform:rotate(${rotation}deg);color:${color};filter:drop-shadow(0 0 4px ${color}88);">
+        html: `<div style="transform:rotate(${flight.heading}deg);color:${color};filter:drop-shadow(0 0 4px ${color}88);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
         </div>`,
         iconSize: [18, 18],
@@ -197,19 +208,33 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
 
       const marker = L.marker([flight.lat, flight.lng], { icon });
       marker.bindPopup(`
-        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;min-width:160px;">
-          <div style="color:${color};font-size:10px;font-weight:bold;letter-spacing:0.1em;margin-bottom:4px;">${flight.callsign}</div>
-          <p style="color:#d4d4d4;font-size:10px;">${flight.type}</p>
-          <div style="color:#888;font-size:9px;margin-top:4px;display:flex;gap:8px;">
-            <span>${flight.altitude}</span><span>${flight.speed}</span>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;min-width:220px;max-width:260px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #333;">
+            <span style="color:${color};font-size:12px;font-weight:bold;letter-spacing:0.08em;">${flight.callsign}</span>
+            ${flight.status === 'alert' ? '<span style="color:#e04040;font-size:9px;font-weight:bold;">⚠ ALERT</span>' : ''}
           </div>
-          <p style="color:#666;font-size:9px;margin-top:2px;">${flight.origin}</p>
-          ${flight.status === 'alert' ? '<p style="color:#e04040;font-size:9px;margin-top:4px;">⚠ ALERT STATUS</p>' : ''}
+          <p style="color:#d4d4d4;font-size:11px;font-weight:600;margin-bottom:6px;">${flight.type}</p>
+          <table style="width:100%;border-collapse:collapse;font-size:9px;">
+            <tr><td style="color:#666;padding:1px 0;">Registration</td><td style="color:#aaa;text-align:right;">${flight.registration}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">ICAO24</td><td style="color:#aaa;text-align:right;">${flight.icao24}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Operator</td><td style="color:#aaa;text-align:right;">${flight.operator}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Squawk</td><td style="color:#aaa;text-align:right;">${flight.squawk}</td></tr>
+            <tr style="border-top:1px solid #333;"><td style="color:#666;padding:3px 0 1px;">Altitude</td><td style="color:#aaa;text-align:right;padding-top:3px;">${flight.altitude} (${flight.altitudeFt.toLocaleString()} ft)</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Ground Speed</td><td style="color:#aaa;text-align:right;">${flight.groundSpeed} kts</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Heading</td><td style="color:#aaa;text-align:right;">${flight.heading}°</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Vertical Rate</td><td style="color:#aaa;text-align:right;">${flight.verticalRate}</td></tr>
+            <tr style="border-top:1px solid #333;"><td style="color:#666;padding:3px 0 1px;">Origin</td><td style="color:#aaa;text-align:right;padding-top:3px;">${flight.origin} (${flight.originICAO})</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Destination</td><td style="color:#aaa;text-align:right;">${flight.destination} ${flight.destinationICAO !== '—' ? `(${flight.destinationICAO})` : ''}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Position</td><td style="color:#aaa;text-align:right;">${flight.lat.toFixed(3)}° N, ${flight.lng.toFixed(3)}° E</td></tr>
+          </table>
+          <div style="margin-top:6px;padding-top:4px;border-top:1px solid #333;color:#555;font-size:8px;text-align:center;letter-spacing:0.08em;">
+            SOURCE: ADS-B EXCHANGE · OPENSKY NETWORK
+          </div>
         </div>
       `);
       marker.addTo(lg);
 
-      // Trail line
+      // Trail
       const trailLen = 1.5;
       const rad = (flight.heading + 180) * Math.PI / 180;
       const endLat = flight.lat + Math.cos(rad) * trailLen;
@@ -220,7 +245,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
     });
   }, []);
 
-  // Populate maritime markers
+  // Populate maritime markers — detailed AIS popups
   useEffect(() => {
     const lg = layerGroups.current.maritime;
     lg.clearLayers();
@@ -239,20 +264,31 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
 
       const marker = L.marker([vessel.lat, vessel.lng], { icon });
       marker.bindPopup(`
-        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;min-width:160px;">
-          <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-            <span style="font-size:12px;">${vessel.flag}</span>
-            <span style="color:#d4d4d4;font-size:10px;font-weight:bold;">${vessel.name}</span>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;min-width:200px;max-width:240px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #333;">
+            <span style="font-size:14px;">${vessel.flag}</span>
+            <span style="color:#d4d4d4;font-size:11px;font-weight:bold;">${vessel.name}</span>
           </div>
-          <p style="color:#888;font-size:10px;">${vessel.type}</p>
-          <div style="color:${color};font-size:9px;font-weight:bold;text-transform:uppercase;margin-top:4px;">${vessel.status}</div>
-          <div style="color:#888;font-size:9px;margin-top:2px;">${vessel.speed}</div>
-          ${vessel.note ? `<p style="color:#d4952a;font-size:9px;margin-top:4px;font-style:italic;">⚠ ${vessel.note}</p>` : ''}
+          <p style="color:#888;font-size:10px;margin-bottom:6px;">${vessel.type}</p>
+          <table style="width:100%;border-collapse:collapse;font-size:9px;">
+            <tr><td style="color:#666;padding:1px 0;">MMSI</td><td style="color:#aaa;text-align:right;">${vessel.mmsi}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">IMO</td><td style="color:#aaa;text-align:right;">${vessel.imo}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Status</td><td style="color:${color};text-align:right;font-weight:bold;text-transform:uppercase;">${vessel.status}</td></tr>
+            <tr style="border-top:1px solid #333;"><td style="color:#666;padding:3px 0 1px;">Speed</td><td style="color:#aaa;text-align:right;padding-top:3px;">${vessel.speed}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Heading</td><td style="color:#aaa;text-align:right;">${vessel.heading}°</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Draught</td><td style="color:#aaa;text-align:right;">${vessel.draught}</td></tr>
+            <tr style="border-top:1px solid #333;"><td style="color:#666;padding:3px 0 1px;">Destination</td><td style="color:#aaa;text-align:right;padding-top:3px;">${vessel.destination}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">ETA</td><td style="color:#aaa;text-align:right;">${vessel.eta}</td></tr>
+            <tr><td style="color:#666;padding:1px 0;">Position</td><td style="color:#aaa;text-align:right;">${vessel.lat.toFixed(3)}° N, ${vessel.lng.toFixed(3)}° E</td></tr>
+          </table>
+          ${vessel.note ? `<div style="margin-top:6px;padding:4px 6px;background:#d4952a15;border:1px solid #d4952a30;border-radius:3px;color:#d4952a;font-size:9px;">⚠ ${vessel.note}</div>` : ''}
+          <div style="margin-top:6px;padding-top:4px;border-top:1px solid #333;color:#555;font-size:8px;text-align:center;letter-spacing:0.08em;">
+            SOURCE: MARINETRAFFIC (FREE) · AIS
+          </div>
         </div>
       `);
       marker.addTo(lg);
 
-      // Vessel range circle for blocked/diverted
       if (vessel.status === 'blocked' || vessel.status === 'diverted') {
         L.circle([vessel.lat, vessel.lng], {
           radius: 50000, color, fillColor: color, fillOpacity: 0.05, weight: 1, opacity: 0.25, dashArray: '6 4',
@@ -260,12 +296,11 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
       }
     });
 
-    // Shipping lane highlight (Red Sea / Bab el-Mandeb)
+    // Shipping lanes
     L.polyline([
       [30.0, 32.5], [27.5, 34.0], [22.0, 38.0], [14.0, 42.5], [12.5, 43.5], [11.5, 45.0]
     ], { color: '#4a8fd4', weight: 1.5, opacity: 0.2, dashArray: '8 6' }).addTo(lg);
 
-    // Strait of Hormuz
     L.polyline([
       [26.0, 56.0], [26.5, 56.5], [27.0, 56.8]
     ], { color: '#e04040', weight: 2, opacity: 0.3, dashArray: '4 4' }).addTo(lg);
@@ -331,7 +366,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
         </div>
       </div>
 
-      {/* Legend */}
+      {/* Legends — only show for active layers */}
       {activeLayers.has('flights') && (
         <div className="absolute bottom-8 left-2 z-[1000] bg-card/90 backdrop-blur-sm border border-border rounded p-2 space-y-1">
           <p className="text-[8px] text-muted-foreground tracking-wider mb-1">ADS-B LEGEND</p>
@@ -350,7 +385,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
       )}
 
       {activeLayers.has('maritime') && (
-        <div className="absolute bottom-8 left-2 z-[1000] bg-card/90 backdrop-blur-sm border border-border rounded p-2 space-y-1" style={{ left: activeLayers.has('flights') ? '90px' : '8px' }}>
+        <div className="absolute bottom-8 z-[1000] bg-card/90 backdrop-blur-sm border border-border rounded p-2 space-y-1" style={{ left: activeLayers.has('flights') ? '90px' : '8px' }}>
           <p className="text-[8px] text-muted-foreground tracking-wider mb-1">AIS LEGEND</p>
           {[
             { label: 'UNDERWAY', color: '#3ab54a' },
