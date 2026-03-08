@@ -51,10 +51,10 @@ function DashboardContent() {
 
         {/* RIGHT — Intel panels */}
         <div className="lg:col-span-4 flex flex-col min-h-[300px] lg:min-h-0 bg-card">
-          <div className="shrink-0 min-h-0 overflow-hidden border-b border-border" style={{ flex: '2 1 0%' }}>
+          <div className="min-h-0 overflow-hidden border-b border-border" style={{ flex: '3 1 0%' }}>
             <ConflictOverview conflict={selectedConflict} events={events} news={news} />
           </div>
-          <div className="shrink-0 min-h-0 overflow-hidden border-b border-border" style={{ flex: '3 1 0%' }}>
+          <div className="min-h-0 overflow-hidden border-b border-border" style={{ flex: '2 1 0%' }}>
             <ThreatAssessment conflict={selectedConflict} />
           </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
