@@ -53,8 +53,8 @@ export default function DashboardHeader() {
         </button>
         {dropdownOpen && (
           <>
-            <div className="fixed inset-0 z-[999]" onClick={() => setDropdownOpen(false)} />
-            <div className="absolute top-full mt-1 right-0 z-[1000] min-w-[240px] bg-card border border-border rounded shadow-lg overflow-hidden">
+            <div className="fixed inset-0 z-[9998]" onClick={() => setDropdownOpen(false)} />
+            <div className="absolute top-full mt-1 right-0 z-[9999] min-w-[240px] bg-card border border-border rounded shadow-lg overflow-hidden">
               {allConflicts.map(conflict => (
                 <button
                   key={conflict.id}
