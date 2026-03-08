@@ -21,54 +21,90 @@ Deno.serve(async (req) => {
     const encodedQuery = encodeURIComponent(query);
 
     if (mode === 'geo') {
-      // GDELT GEO API — returns GeoJSON of event locations
-      const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&format=GeoJSON&timespan=7d`;
+      // GDELT GEO API — use PointData mode for proper GeoJSON
+      const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=7d&maxpoints=50`;
       console.log('Fetching GDELT GEO:', url);
 
-      const response = await fetch(url);
-      if (!response.ok) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('GDELT GEO error:', response.status, text.substring(0, 200));
+          // Fallback: return empty features so UI doesn't break
+          return new Response(
+            JSON.stringify({ success: true, data: { type: 'FeatureCollection', features: [] } }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         const text = await response.text();
-        console.error('GDELT GEO error:', response.status, text);
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          console.error('GDELT GEO parse error, returning empty');
+          data = { type: 'FeatureCollection', features: [] };
+        }
+
         return new Response(
-          JSON.stringify({ success: false, error: `GDELT API error: ${response.status}` }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: true, data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (fetchErr) {
+        clearTimeout(timeout);
+        console.error('GDELT GEO fetch failed:', fetchErr);
+        return new Response(
+          JSON.stringify({ success: true, data: { type: 'FeatureCollection', features: [] } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const data = await response.json();
-      return new Response(
-        JSON.stringify({ success: true, data }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
     // Default: Article list
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=75&format=json&sort=DateDesc&timespan=48h`;
     console.log('Fetching GDELT articles:', url);
 
-    const response = await fetch(url);
-    if (!response.ok) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('GDELT article error:', response.status, text.substring(0, 200));
+        return new Response(
+          JSON.stringify({ success: true, data: { articles: [] } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const text = await response.text();
-      console.error('GDELT article error:', response.status, text);
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { articles: [] };
+      }
+
       return new Response(
-        JSON.stringify({ success: false, error: `GDELT API error: ${response.status}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, data }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      console.error('GDELT articles fetch failed:', fetchErr);
+      return new Response(
+        JSON.stringify({ success: true, data: { articles: [] } }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // GDELT sometimes returns empty or malformed
-      data = { articles: [] };
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Edge function error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';

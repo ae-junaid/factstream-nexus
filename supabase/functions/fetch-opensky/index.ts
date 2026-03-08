@@ -18,43 +18,64 @@ Deno.serve(async (req) => {
       );
     }
 
-    const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
-    console.log('Fetching OpenSky:', url);
+    // Try multiple OpenSky endpoints with short timeouts
+    const urls = [
+      `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`,
+    ];
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    for (const url of urls) {
+      console.log('Trying flight data source:', url);
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('OpenSky error:', response.status, text);
-      // OpenSky rate limits - return empty gracefully
-      if (response.status === 429) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' },
+        });
+        clearTimeout(timeout);
+
+        if (response.status === 429) {
+          console.log('Rate limited, returning empty');
+          return new Response(
+            JSON.stringify({ success: true, data: { time: Date.now() / 1000, states: [] }, rateLimited: true }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Flight API error:', response.status, text.substring(0, 200));
+          continue; // try next URL
+        }
+
+        const data = await response.json();
+        console.log(`Flight data received: ${data?.states?.length || 0} aircraft`);
+
         return new Response(
-          JSON.stringify({ success: true, data: { time: Date.now() / 1000, states: [] }, rateLimited: true }),
+          JSON.stringify({ success: true, data }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      } catch (fetchErr) {
+        clearTimeout(timeout);
+        console.error('Flight source timeout/error:', fetchErr instanceof Error ? fetchErr.message : fetchErr);
+        continue;
       }
-      return new Response(
-        JSON.stringify({ success: false, error: `OpenSky API error: ${response.status}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    const data = await response.json();
-
+    // All sources failed — return empty gracefully instead of 500
+    console.log('All flight sources unavailable, returning empty state');
     return new Response(
-      JSON.stringify({ success: true, data }),
+      JSON.stringify({ success: true, data: { time: Date.now() / 1000, states: [] }, unavailable: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Edge function error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, data: { time: Date.now() / 1000, states: [] }, error: msg }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
