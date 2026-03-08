@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink, ImageOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink, ImageOff, Newspaper } from 'lucide-react';
 import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 
 const credBgMap: Record<string, string> = {
@@ -8,6 +8,31 @@ const credBgMap: Record<string, string> = {
   unconfirmed: 'bg-ops-amber/20 text-ops-amber border-ops-amber/30',
   disputed: 'bg-ops-red/20 text-ops-red border-ops-red/30',
 };
+
+const sourceColors: Record<string, string> = {
+  'CNN': 'from-red-900/80 to-red-950/90',
+  'The Guardian': 'from-blue-900/80 to-blue-950/90',
+  'Al Jazeera': 'from-amber-900/80 to-amber-950/90',
+  'BBC': 'from-rose-900/80 to-rose-950/90',
+  'Reuters': 'from-orange-900/80 to-orange-950/90',
+  'NPR': 'from-indigo-900/80 to-indigo-950/90',
+  'NBC News': 'from-purple-900/80 to-purple-950/90',
+  'AP News': 'from-red-900/80 to-red-950/90',
+  'The New York Times': 'from-gray-800/80 to-gray-950/90',
+  'The Washington Post': 'from-slate-800/80 to-slate-950/90',
+  'Time Magazine': 'from-red-800/80 to-red-950/90',
+  'CBS News': 'from-blue-800/80 to-blue-950/90',
+  'CNBC': 'from-teal-900/80 to-teal-950/90',
+  'Foreign Affairs': 'from-stone-800/80 to-stone-950/90',
+  'Human Rights Watch': 'from-green-900/80 to-green-950/90',
+};
+
+function getSourceGradient(source: string): string {
+  for (const [key, gradient] of Object.entries(sourceColors)) {
+    if (source.toLowerCase().includes(key.toLowerCase())) return gradient;
+  }
+  return 'from-secondary/80 to-background/90';
+}
 
 interface MediaCarouselProps {
   news: NewsItem[];
@@ -53,8 +78,13 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
 
   const item = items[current];
   const cred = CREDIBILITY_CONFIG[item.credibility];
-  // Use the article's own social image if available
   const bgImage = item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null;
+
+  // Extract source name from title (e.g. "headline - CNN" → "CNN")
+  const displaySource = item.source.replace('news.google.com', '');
+  const titleParts = item.headline.split(' - ');
+  const realSource = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : displaySource;
+  const cleanHeadline = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : item.headline;
 
   return (
     <div
@@ -87,18 +117,25 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
         </div>
       </div>
 
-      {/* Background image or placeholder */}
+      {/* Background: image or styled text card */}
       {bgImage ? (
         <img
           src={bgImage}
-          alt={item.headline}
+          alt={cleanHeadline}
           className="w-full h-full object-cover transition-opacity duration-500"
           onError={() => setFailedImages(prev => new Set(prev).add(item.imageUrl!))}
         />
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-secondary/30">
-          <ImageOff className="w-8 h-8 text-muted-foreground/30 mb-2" />
-          <span className="text-[9px] text-muted-foreground/50 tracking-wider">NO MEDIA</span>
+        <div className={`w-full h-full flex flex-col items-center justify-center bg-gradient-to-br ${getSourceGradient(realSource)} p-6`}>
+          <div className="flex flex-col items-center gap-3 max-w-[90%]">
+            <div className="flex items-center gap-2 opacity-40">
+              <Newspaper className="w-5 h-5 text-foreground" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-foreground uppercase">{realSource}</span>
+            </div>
+            <p className="text-[13px] text-foreground/80 text-center leading-relaxed line-clamp-4 font-medium">
+              {cleanHeadline}
+            </p>
+          </div>
         </div>
       )}
 
@@ -112,7 +149,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
             {cred.label}
           </span>
           <span className="text-[10px] text-muted-foreground font-mono">
-            {item.source}
+            {realSource}
           </span>
           <span className="text-[10px] text-muted-foreground font-mono">
             {new Date(item.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -124,7 +161,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
           rel="noopener noreferrer"
           className="block text-[11px] text-foreground/90 leading-tight line-clamp-2 hover:text-primary transition-colors"
         >
-          {item.headline}
+          {cleanHeadline}
           <ExternalLink className="inline w-3 h-3 ml-1 opacity-50" />
         </a>
       </div>
