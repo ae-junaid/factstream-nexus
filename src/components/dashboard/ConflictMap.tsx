@@ -30,9 +30,17 @@ export default function ConflictMap({ events, onEventSelect }: ConflictMapProps)
       attributionControl: false,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+    }).addTo(map);
 
     mapInstance.current = map;
+
+    // Force Leaflet to recalculate container size after render
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
 
     // Fit bounds
     if (events.length > 0) {
