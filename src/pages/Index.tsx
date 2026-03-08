@@ -40,11 +40,11 @@ function DashboardContent() {
 
         {/* CENTER — Map + Media */}
         <div className="lg:col-span-5 flex flex-col min-h-[500px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border">
-          <div className="flex-1 relative min-h-0">
+          <div className="relative min-h-0" style={{ flex: '3 1 0%' }}>
             <UnifiedMap events={events} onEventSelect={setSelectedEvent} conflict={selectedConflict} />
             <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
           </div>
-          <div className="flex-1 border-t border-border min-h-0">
+          <div className="border-t border-border min-h-0 shrink-0">
             <MediaCarousel news={news} />
           </div>
         </div>
