@@ -3,8 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
 import { ConflictZone } from '@/lib/conflicts';
-import { useOpenSkyFlights, LiveFlight } from '@/hooks/useOpenSkyData';
-import { Plane, Anchor, Crosshair, Layers, Maximize2, Minimize2, Radio, Loader2 } from 'lucide-react';
+import { Anchor, Crosshair, Layers, Maximize2, Minimize2, Radio } from 'lucide-react';
 
 const eventColorMap: Record<string, string> = {
   'ops-red': '#e04040',
