@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, ChevronUp, Loader2, Activity } from 'lucide-react';
 import { ConflictZone } from '@/lib/conflicts';
-import { useGdeltEvents } from '@/hooks/useGdeltData';
+import { ConflictEvent } from '@/data/mockData';
 
 interface ThreatZone {
   id: string;
