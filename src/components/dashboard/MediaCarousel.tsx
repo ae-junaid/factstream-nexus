@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink, ImageOff, Newspaper } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, ExternalLink } from 'lucide-react';
 import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 
 const credBgMap: Record<string, string> = {
@@ -8,31 +8,6 @@ const credBgMap: Record<string, string> = {
   unconfirmed: 'bg-ops-amber/20 text-ops-amber border-ops-amber/30',
   disputed: 'bg-ops-red/20 text-ops-red border-ops-red/30',
 };
-
-const sourceColors: Record<string, string> = {
-  'CNN': 'from-red-900/80 to-red-950/90',
-  'The Guardian': 'from-blue-900/80 to-blue-950/90',
-  'Al Jazeera': 'from-amber-900/80 to-amber-950/90',
-  'BBC': 'from-rose-900/80 to-rose-950/90',
-  'Reuters': 'from-orange-900/80 to-orange-950/90',
-  'NPR': 'from-indigo-900/80 to-indigo-950/90',
-  'NBC News': 'from-purple-900/80 to-purple-950/90',
-  'AP News': 'from-red-900/80 to-red-950/90',
-  'The New York Times': 'from-gray-800/80 to-gray-950/90',
-  'The Washington Post': 'from-slate-800/80 to-slate-950/90',
-  'Time Magazine': 'from-red-800/80 to-red-950/90',
-  'CBS News': 'from-blue-800/80 to-blue-950/90',
-  'CNBC': 'from-teal-900/80 to-teal-950/90',
-  'Foreign Affairs': 'from-stone-800/80 to-stone-950/90',
-  'Human Rights Watch': 'from-green-900/80 to-green-950/90',
-};
-
-function getSourceGradient(source: string): string {
-  for (const [key, gradient] of Object.entries(sourceColors)) {
-    if (source.toLowerCase().includes(key.toLowerCase())) return gradient;
-  }
-  return 'from-secondary/80 to-background/90';
-}
 
 interface MediaCarouselProps {
   news: NewsItem[];
@@ -80,20 +55,18 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
   const cred = CREDIBILITY_CONFIG[item.credibility];
   const bgImage = item.imageUrl && !failedImages.has(item.imageUrl) ? item.imageUrl : null;
 
-  // Extract source name from title (e.g. "headline - CNN" → "CNN")
-  const displaySource = item.source.replace('news.google.com', '');
   const titleParts = item.headline.split(' - ');
-  const realSource = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : displaySource;
+  const realSource = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : item.source.replace('news.google.com', '');
   const cleanHeadline = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : item.headline;
 
   return (
     <div
-      className="relative w-full h-full bg-card/50 overflow-hidden group"
+      className="relative w-full h-full bg-background overflow-hidden group"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-1.5 bg-gradient-to-b from-background/90 to-transparent">
+      {/* Header bar */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-1.5 bg-background/95 border-b border-border">
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-red pulse-dot" />
           <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">
@@ -117,30 +90,18 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
         </div>
       </div>
 
-      {/* Background: image or styled text card */}
-      {bgImage ? (
+      {/* Background image */}
+      {bgImage && (
         <img
           src={bgImage}
           alt={cleanHeadline}
-          className="w-full h-full object-cover transition-opacity duration-500"
+          className="w-full h-full object-cover"
           onError={() => setFailedImages(prev => new Set(prev).add(item.imageUrl!))}
         />
-      ) : (
-        <div className={`w-full h-full flex flex-col items-center justify-center bg-gradient-to-br ${getSourceGradient(realSource)} p-6`}>
-          <div className="flex flex-col items-center gap-3 max-w-[90%]">
-            <div className="flex items-center gap-2 opacity-40">
-              <Newspaper className="w-5 h-5 text-foreground" />
-              <span className="text-[10px] font-bold tracking-[0.2em] text-foreground uppercase">{realSource}</span>
-            </div>
-            <p className="text-[13px] text-foreground/80 text-center leading-relaxed line-clamp-4 font-medium">
-              {cleanHeadline}
-            </p>
-          </div>
-        </div>
       )}
 
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+      {/* Dark overlay on image for readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-3 space-y-1.5">
@@ -159,7 +120,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
           href={item.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-[11px] text-foreground/90 leading-tight line-clamp-2 hover:text-primary transition-colors"
+          className="block text-[11px] text-foreground/90 leading-tight line-clamp-2 hover:text-primary transition-colors font-medium"
         >
           {cleanHeadline}
           <ExternalLink className="inline w-3 h-3 ml-1 opacity-50" />
