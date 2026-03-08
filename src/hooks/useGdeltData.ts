@@ -103,8 +103,16 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
         body: { query: conflict.gdeltQuery, mode: 'geo' },
       });
 
-      if (fnError) throw new Error(fnError.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to fetch events');
+      if (fnError) {
+        console.warn('GDELT events function error:', fnError.message);
+        setLoading(false);
+        return;
+      }
+      if (!data?.success && !data?.data) {
+        console.warn('GDELT events returned no data');
+        setLoading(false);
+        return;
+      }
 
       const features = data.data?.features || [];
       
