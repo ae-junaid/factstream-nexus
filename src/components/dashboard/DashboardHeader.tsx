@@ -33,7 +33,7 @@ export default function DashboardHeader() {
         <Shield className="w-5 h-5 text-primary" />
         <div>
           <h1 className="text-sm font-bold tracking-wider text-foreground">
-            CONFLICT<span className="text-primary">MONITOR</span>
+            CONFLICTS<span className="text-primary">MONITOR</span>
           </h1>
           <p className="text-[9px] text-muted-foreground tracking-widest">OPEN SOURCE INTELLIGENCE DASHBOARD</p>
         </div>
