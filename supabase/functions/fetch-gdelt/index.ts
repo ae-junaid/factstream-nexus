@@ -203,8 +203,7 @@ Deno.serve(async (req) => {
         
         if (articles.length > 0) {
           console.log(`GDELT articles: ${articles.length} (${timespan})`);
-          // Enrich missing images
-          const enriched = await enrichWithOgImages(articles);
+          const enriched = enrichWithImages(articles);
           return ok({ articles: enriched });
         }
       } catch { /* continue to next timespan */ }
