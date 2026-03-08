@@ -99,6 +99,7 @@ export default function UnifiedMap({ events, onEventSelect }: UnifiedMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const layerGroups = useRef<Record<MapLayer, L.LayerGroup>>({
     events: L.layerGroup(),
