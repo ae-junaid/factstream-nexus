@@ -38,10 +38,7 @@ function extractDomainFromUrl(url: string): string {
 }
 
 function simplifyQuery(query: string): string {
-  return query
-    .replace(/sourcelang:\w+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return query.replace(/sourcelang:\w+/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function extractKeyTerms(query: string): string {
@@ -56,69 +53,56 @@ function extractKeyTerms(query: string): string {
     .join(' ');
 }
 
-// Fetch OG image from an article URL by following redirects and parsing HTML
-async function fetchOgImage(url: string): Promise<string> {
-  try {
-    const response = await fetchWithTimeout(url, 5000);
-    if (!response.ok) return '';
-    
-    // Only read first 50KB to find og:image quickly
-    const reader = response.body?.getReader();
-    if (!reader) return '';
-    
-    let html = '';
-    const decoder = new TextDecoder();
-    while (html.length < 50000) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      html += decoder.decode(value, { stream: true });
-      // Check if we've passed the </head> tag
-      if (html.includes('</head>')) break;
-    }
-    reader.cancel();
+// Reliable topic images from Unsplash (no API key needed)
+const TOPIC_IMAGES: Record<string, string[]> = {
+  iran: [
+    'https://images.unsplash.com/photo-1564694202883-46e7fa827764?w=800&q=80',
+    'https://images.unsplash.com/photo-1547483238-2cbf881a559f?w=800&q=80',
+  ],
+  israel: [
+    'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
+    'https://images.unsplash.com/photo-1552423314-cf29ab68ad73?w=800&q=80',
+  ],
+  ukraine: [
+    'https://images.unsplash.com/photo-1561542320-9a18cd340e98?w=800&q=80',
+    'https://images.unsplash.com/photo-1569317002804-ab77bcf1bce4?w=800&q=80',
+  ],
+  military: [
+    'https://images.unsplash.com/photo-1580752300992-559f8e0734e0?w=800&q=80',
+    'https://images.unsplash.com/photo-1579912437766-7896df6d3cd3?w=800&q=80',
+  ],
+  diplomatic: [
+    'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&q=80',
+    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&q=80',
+  ],
+  humanitarian: [
+    'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=80',
+    'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&q=80',
+  ],
+  default: [
+    'https://images.unsplash.com/photo-1504711434969-e33886168d6c?w=800&q=80',
+    'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&q=80',
+    'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&q=80',
+  ],
+};
 
-    // Extract og:image
-    const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i)
-      || html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
-    
-    if (ogMatch?.[1]) {
-      const img = ogMatch[1].replace(/&amp;/g, '&');
-      // Validate it's a real URL
-      if (img.startsWith('http')) return img;
-    }
-    
-    // Try twitter:image as fallback
-    const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i)
-      || html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
-    
-    if (twMatch?.[1]) {
-      const img = twMatch[1].replace(/&amp;/g, '&');
-      if (img.startsWith('http')) return img;
-    }
-
-    return '';
-  } catch {
-    return '';
-  }
+function getTopicImage(title: string, index: number): string {
+  const t = title.toLowerCase();
+  let pool = TOPIC_IMAGES.default;
+  if (t.includes('iran') || t.includes('tehran') || t.includes('persian')) pool = TOPIC_IMAGES.iran;
+  else if (t.includes('israel') || t.includes('jerusalem')) pool = TOPIC_IMAGES.israel;
+  else if (t.includes('ukraine') || t.includes('kyiv')) pool = TOPIC_IMAGES.ukraine;
+  else if (t.includes('diplomatic') || t.includes('talks') || t.includes('summit')) pool = TOPIC_IMAGES.diplomatic;
+  else if (t.includes('humanitarian') || t.includes('aid') || t.includes('refugee')) pool = TOPIC_IMAGES.humanitarian;
+  else if (t.includes('military') || t.includes('strike') || t.includes('missile') || t.includes('war')) pool = TOPIC_IMAGES.military;
+  return pool[index % pool.length];
 }
 
-// Enrich articles with OG images in parallel (top N only)
-async function enrichWithOgImages(articles: any[], maxEnrich = 10): Promise<any[]> {
-  const toEnrich = articles.slice(0, maxEnrich);
-  const rest = articles.slice(maxEnrich);
-  
-  const enriched = await Promise.all(
-    toEnrich.map(async (article: any) => {
-      if (article.socialimage) return article;
-      const ogImage = await fetchOgImage(article.url);
-      return { ...article, socialimage: ogImage };
-    })
-  );
-  
-  const enrichedCount = enriched.filter((a: any) => a.socialimage).length;
-  console.log(`OG enrichment: ${enrichedCount}/${toEnrich.length} got images`);
-  
-  return [...enriched, ...rest];
+function enrichWithImages(articles: any[]): any[] {
+  return articles.map((a: any, i: number) => {
+    if (a.socialimage && a.socialimage.startsWith('http')) return a;
+    return { ...a, socialimage: getTopicImage(a.title || '', i) };
+  });
 }
 
 Deno.serve(async (req) => {
@@ -137,104 +121,78 @@ Deno.serve(async (req) => {
     const encodedQuery = encodeURIComponent(cleanQuery + ' sourcelang:english');
 
     if (mode === 'geo') {
-      // Try progressively wider timespans for geo data
       for (const timespan of ['1h', '3h', '12h']) {
         const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=${timespan}&maxpoints=50`;
         console.log(`GDELT GEO timespan=${timespan}`);
-        
         const response = await tryFetch(url, 12000);
         if (!response) continue;
-
         try {
           const data = await response.json();
-          const features = data?.features || [];
-          if (features.length > 0) {
-            console.log(`GEO success: ${features.length} features (${timespan})`);
+          if (data?.features?.length > 0) {
+            console.log(`GEO success: ${data.features.length} features (${timespan})`);
             return ok(data);
           }
         } catch { /* continue */ }
       }
 
-      // Fallback: DOC API to generate geo
       const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=24h`;
       const docResponse = await tryFetch(docUrl, 12000);
-      
       if (docResponse) {
         try {
           const data = await docResponse.json();
           const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
-          const features = articles.slice(0, 25).map((a: any, _i: number) => {
-            const loc = extractLocationFromArticle(a.title || '', a.domain || '');
+          const features = articles.slice(0, 25).map((a: any) => {
+            const loc = extractLocationFromArticle(a.title || '');
             return {
               type: 'Feature',
               geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
-              properties: {
-                name: a.title || 'Unknown event',
-                url: a.url || '',
-                urlpubtimedate: a.seendate || new Date().toISOString(),
-                html: a.title || '',
-                domain: a.domain || '',
-              },
+              properties: { name: a.title || 'Unknown event', url: a.url || '', urlpubtimedate: a.seendate || new Date().toISOString(), html: a.title || '', domain: a.domain || '' },
             };
           }).filter((f: any) => f.geometry.coordinates[0] !== 0 && f.geometry.coordinates[1] !== 0);
-          
           if (features.length > 0) {
             console.log(`Doc-to-geo fallback: ${features.length} features`);
             return ok({ type: 'FeatureCollection', features });
           }
         } catch { /* continue */ }
       }
-
       return ok({ type: 'FeatureCollection', features: [] });
     }
 
     // === ARTICLE MODE ===
-    // Try GDELT with progressively wider timespans
     for (const timespan of ['1h', '3h', '6h', '24h']) {
       const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=${timespan}`;
       console.log(`GDELT articles timespan=${timespan}`);
-
       const response = await tryFetch(url, 12000);
       if (!response) continue;
-
       try {
         const data = await response.json();
         const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
-        
         if (articles.length > 0) {
           console.log(`GDELT articles: ${articles.length} (${timespan})`);
-          const enriched = enrichWithImages(articles);
-          return ok({ articles: enriched });
+          return ok({ articles: enrichWithImages(articles) });
         }
-      } catch { /* continue to next timespan */ }
+      } catch { /* continue */ }
     }
 
     // Fallback: Google News RSS via rss2json
     const keywords = extractKeyTerms(query);
     console.log(`RSS fallback for: ${keywords}`);
-    
     const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US&ceid=US:en`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=25`;
-    
     const rssResponse = await tryFetch(apiUrl, 8000);
     if (rssResponse) {
       try {
         const data = await rssResponse.json();
         if (data.status === 'ok' && data.items?.length) {
           const articles = data.items.map((item: any) => ({
-            url: item.link || '',
-            title: (item.title || '').replace(/<[^>]*>/g, '').trim(),
+            url: item.link || '', title: (item.title || '').replace(/<[^>]*>/g, '').trim(),
             seendate: item.pubDate || new Date().toISOString(),
             socialimage: item.thumbnail || item.enclosure?.link || '',
-            domain: extractDomainFromUrl(item.link || ''),
-            language: 'English',
-            sourcecountry: '',
+            domain: extractDomainFromUrl(item.link || ''), language: 'English', sourcecountry: '',
           })).filter((a: any) => a.title && a.url);
-          
           if (articles.length > 0) {
             console.log(`RSS: ${articles.length} articles`);
-            const enriched = enrichWithImages(articles);
-            return ok({ articles: enriched });
+            return ok({ articles: enrichWithImages(articles) });
           }
         }
       } catch { /* continue */ }
@@ -258,15 +216,12 @@ Deno.serve(async (req) => {
             seendate: updatedMatch?.[1] || new Date().toISOString(),
             socialimage: '',
             domain: sourceMatch?.[1]?.trim() || extractDomainFromUrl(linkMatch?.[1] || ''),
-            language: 'English',
-            sourcecountry: '',
+            language: 'English', sourcecountry: '',
           };
         }).filter((a: any) => a.title && a.url);
-        
         if (articles.length > 0) {
           console.log(`Atom: ${articles.length} articles`);
-          const enriched = enrichWithImages(articles);
-          return ok({ articles: enriched });
+          return ok({ articles: enrichWithImages(articles) });
         }
       } catch { /* continue */ }
     }
@@ -279,63 +234,34 @@ Deno.serve(async (req) => {
   }
 });
 
-function extractLocationFromArticle(title: string, _domain: string): { lat: number; lng: number } {
+function extractLocationFromArticle(title: string): { lat: number; lng: number } {
   const t = title.toLowerCase();
   const locations: Record<string, { lat: number; lng: number }> = {
-    'gaza': { lat: 31.35, lng: 34.31 },
-    'rafah': { lat: 31.30, lng: 34.25 },
-    'khan younis': { lat: 31.35, lng: 34.31 },
-    'tel aviv': { lat: 32.09, lng: 34.78 },
-    'jerusalem': { lat: 31.77, lng: 35.23 },
-    'beirut': { lat: 33.89, lng: 35.50 },
-    'lebanon': { lat: 33.85, lng: 35.86 },
-    'damascus': { lat: 33.51, lng: 36.29 },
-    'syria': { lat: 34.80, lng: 38.99 },
-    'tehran': { lat: 35.69, lng: 51.39 },
-    'iran': { lat: 32.43, lng: 53.69 },
-    'isfahan': { lat: 32.65, lng: 51.68 },
-    'iraq': { lat: 33.22, lng: 43.68 },
-    'baghdad': { lat: 33.31, lng: 44.37 },
-    'yemen': { lat: 15.55, lng: 48.52 },
-    'sanaa': { lat: 15.37, lng: 44.19 },
-    'red sea': { lat: 20.00, lng: 38.50 },
-    'hormuz': { lat: 26.60, lng: 56.25 },
-    'houthi': { lat: 15.35, lng: 44.21 },
-    'israel': { lat: 31.05, lng: 34.85 },
-    'west bank': { lat: 31.95, lng: 35.25 },
-    'hezbollah': { lat: 33.27, lng: 35.20 },
-    'qatar': { lat: 25.29, lng: 51.53 },
-    'al udeid': { lat: 25.12, lng: 51.31 },
-    'dubai': { lat: 25.20, lng: 55.27 },
-    'uae': { lat: 24.45, lng: 54.65 },
-    'al dhafra': { lat: 24.25, lng: 54.55 },
-    'bahrain': { lat: 26.07, lng: 50.55 },
-    'oman': { lat: 23.58, lng: 58.38 },
-    'muscat': { lat: 23.59, lng: 58.55 },
-    'riyadh': { lat: 24.71, lng: 46.67 },
-    'saudi': { lat: 24.71, lng: 46.67 },
-    'persian gulf': { lat: 26.00, lng: 52.00 },
-    'strait of hormuz': { lat: 26.60, lng: 56.25 },
-    'ukraine': { lat: 48.38, lng: 31.17 },
-    'kyiv': { lat: 50.45, lng: 30.52 },
-    'kharkiv': { lat: 49.99, lng: 36.23 },
-    'crimea': { lat: 44.95, lng: 34.10 },
-    'donbas': { lat: 48.02, lng: 37.80 },
-    'russia': { lat: 55.75, lng: 37.62 },
-    'moscow': { lat: 55.76, lng: 37.62 },
-    'sudan': { lat: 15.50, lng: 32.56 },
-    'khartoum': { lat: 15.59, lng: 32.53 },
-    'darfur': { lat: 13.50, lng: 25.00 },
-    'myanmar': { lat: 19.76, lng: 96.07 },
-    'yangon': { lat: 16.87, lng: 96.20 },
+    'gaza': { lat: 31.35, lng: 34.31 }, 'rafah': { lat: 31.30, lng: 34.25 },
+    'tel aviv': { lat: 32.09, lng: 34.78 }, 'jerusalem': { lat: 31.77, lng: 35.23 },
+    'beirut': { lat: 33.89, lng: 35.50 }, 'lebanon': { lat: 33.85, lng: 35.86 },
+    'damascus': { lat: 33.51, lng: 36.29 }, 'syria': { lat: 34.80, lng: 38.99 },
+    'tehran': { lat: 35.69, lng: 51.39 }, 'iran': { lat: 32.43, lng: 53.69 },
+    'isfahan': { lat: 32.65, lng: 51.68 }, 'iraq': { lat: 33.22, lng: 43.68 },
+    'baghdad': { lat: 33.31, lng: 44.37 }, 'yemen': { lat: 15.55, lng: 48.52 },
+    'sanaa': { lat: 15.37, lng: 44.19 }, 'red sea': { lat: 20.00, lng: 38.50 },
+    'hormuz': { lat: 26.60, lng: 56.25 }, 'houthi': { lat: 15.35, lng: 44.21 },
+    'israel': { lat: 31.05, lng: 34.85 }, 'west bank': { lat: 31.95, lng: 35.25 },
+    'hezbollah': { lat: 33.27, lng: 35.20 }, 'qatar': { lat: 25.29, lng: 51.53 },
+    'al udeid': { lat: 25.12, lng: 51.31 }, 'dubai': { lat: 25.20, lng: 55.27 },
+    'uae': { lat: 24.45, lng: 54.65 }, 'bahrain': { lat: 26.07, lng: 50.55 },
+    'oman': { lat: 23.58, lng: 58.38 }, 'riyadh': { lat: 24.71, lng: 46.67 },
+    'saudi': { lat: 24.71, lng: 46.67 }, 'persian gulf': { lat: 26.00, lng: 52.00 },
+    'ukraine': { lat: 48.38, lng: 31.17 }, 'kyiv': { lat: 50.45, lng: 30.52 },
+    'kharkiv': { lat: 49.99, lng: 36.23 }, 'crimea': { lat: 44.95, lng: 34.10 },
+    'donbas': { lat: 48.02, lng: 37.80 }, 'russia': { lat: 55.75, lng: 37.62 },
+    'moscow': { lat: 55.76, lng: 37.62 }, 'sudan': { lat: 15.50, lng: 32.56 },
+    'khartoum': { lat: 15.59, lng: 32.53 }, 'darfur': { lat: 13.50, lng: 25.00 },
+    'myanmar': { lat: 19.76, lng: 96.07 }, 'yangon': { lat: 16.87, lng: 96.20 },
   };
-
   for (const [keyword, coords] of Object.entries(locations)) {
     if (t.includes(keyword)) {
-      return {
-        lat: coords.lat + (Math.random() - 0.5) * 0.5,
-        lng: coords.lng + (Math.random() - 0.5) * 0.5,
-      };
+      return { lat: coords.lat + (Math.random() - 0.5) * 0.5, lng: coords.lng + (Math.random() - 0.5) * 0.5 };
     }
   }
   return { lat: 0, lng: 0 };
