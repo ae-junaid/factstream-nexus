@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Clock, ChevronUp, ChevronDown } from 'lucide-react';
+import { ExternalLink, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { NewsItem, CREDIBILITY_CONFIG } from '@/data/mockData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -35,8 +36,8 @@ interface MediaCarouselProps {
 export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
   const [newFlash, setNewFlash] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(news.length);
+  const navigate = useNavigate();
 
-  // Flash new articles
   useEffect(() => {
     if (news.length > prevCountRef.current) {
       const newIds = new Set(news.slice(0, news.length - prevCountRef.current).map(n => n.id));
@@ -46,6 +47,15 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
     }
     prevCountRef.current = news.length;
   }, [news]);
+
+  const handleArticleClick = (item: NewsItem, title: string, source: string) => {
+    const params = new URLSearchParams({
+      url: item.url,
+      title: encodeURIComponent(title),
+      source: encodeURIComponent(source),
+    });
+    navigate(`/article?${params.toString()}`);
+  };
 
   if (news.length === 0) {
     return (
@@ -64,7 +74,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
       <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-card/80 border-b border-border">
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-red pulse-dot" />
-          <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">BREAKING NEWS</span>
+          <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">MAJOR UPDATES</span>
         </div>
         <span className="text-[9px] text-muted-foreground font-mono">{news.length} STORIES</span>
       </div>
@@ -79,16 +89,14 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
             const isNew = newFlash.has(item.id);
 
             return (
-              <a
+              <div
                 key={item.id}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`block px-3 py-2.5 hover:bg-secondary/40 transition-all group ${
+                onClick={() => handleArticleClick(item, title, displaySource)}
+                className={`block px-3 py-2.5 hover:bg-secondary/40 transition-all group cursor-pointer ${
                   isNew ? 'bg-primary/5 animate-pulse' : ''
                 } ${i === 0 ? 'bg-secondary/20' : ''}`}
               >
-                {/* Top row: credibility + source + time */}
+                {/* Top row */}
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-[8px] font-bold tracking-wider px-1 py-0.5 rounded border ${credBgMap[item.credibility]}`}>
                     {cred.label}
@@ -110,13 +118,12 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
                   <ExternalLink className="inline w-2.5 h-2.5 ml-1 opacity-30 group-hover:opacity-70" />
                 </p>
 
-                {/* First article gets extra prominence */}
                 {i === 0 && (
                   <div className="mt-1 flex items-center gap-1">
                     <span className="text-[8px] font-bold tracking-widest text-ops-red">● LATEST</span>
                   </div>
                 )}
-              </a>
+              </div>
             );
           })}
         </div>
