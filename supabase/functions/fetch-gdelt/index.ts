@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       const geoModes = ['PointData', 'PointHeatmap'];
       
       for (const geoMode of geoModes) {
-        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=7d&maxpoints=50`;
+        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=1h&maxpoints=50`;
         console.log('Trying GDELT GEO:', geoMode);
 
         const response = await fetchWithRetry(url, 12000, 1);
