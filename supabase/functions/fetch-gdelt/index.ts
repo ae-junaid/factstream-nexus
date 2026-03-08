@@ -21,69 +21,41 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
-async function fetchWithRetry(url: string, timeoutMs: number, retries = 2): Promise<Response | null> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await fetchWithTimeout(url, timeoutMs);
-      if (response.ok) return response;
-      console.warn(`Attempt ${i + 1} failed: HTTP ${response.status}`);
-    } catch (err) {
-      console.warn(`Attempt ${i + 1} error:`, err instanceof Error ? err.message : err);
-    }
-    if (i < retries) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-  }
-  return null;
-}
-
-// RSS feed URLs per conflict for fallback news
-const RSS_FEEDS: Record<string, string[]> = {
-  'iran-israel': [
-    'https://rss.app/feeds/v1.1/t4bNsGfbqeSnqOPH.json',
-  ],
-  'default': [],
-};
-
-// Fetch news from RSS via rss2json (free, no key)
-async function fetchRssNews(query: string): Promise<any[]> {
-  // Use Google News RSS as a universal fallback
-  const keywords = query
-    .replace(/sourcelang:\w+/g, '')
-    .replace(/[()]/g, '')
-    .split(/\s+OR\s+/i)
-    .slice(0, 3)
-    .map(k => k.replace(/"/g, '').trim())
-    .filter(Boolean)
-    .join('+');
-  
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US&ceid=US:en`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=25`;
-  
-  console.log('Trying RSS fallback:', apiUrl.substring(0, 100));
-  
+async function tryFetch(url: string, timeoutMs = 10000): Promise<Response | null> {
   try {
-    const response = await fetchWithTimeout(apiUrl, 8000);
-    if (!response.ok) return [];
-    const data = await response.json();
-    
-    if (data.status !== 'ok' || !data.items?.length) return [];
-    
-    return data.items.map((item: any) => ({
-      url: item.link || '',
-      title: (item.title || '').replace(/<[^>]*>/g, '').trim(),
-      seendate: item.pubDate || new Date().toISOString(),
-      socialimage: item.thumbnail || item.enclosure?.link || '',
-      domain: extractDomainFromUrl(item.link || ''),
-      language: 'English',
-      sourcecountry: '',
-    })).filter((a: any) => a.title && a.url);
+    const response = await fetchWithTimeout(url, timeoutMs);
+    if (response.ok) return response;
+    console.warn(`HTTP ${response.status} for ${url.substring(0, 80)}`);
+    return null;
   } catch (err) {
-    console.warn('RSS fallback failed:', err instanceof Error ? err.message : err);
-    return [];
+    console.warn(`Fetch error: ${err instanceof Error ? err.message : err}`);
+    return null;
   }
 }
 
 function extractDomainFromUrl(url: string): string {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return 'unknown'; }
+}
+
+// Simplify query for GDELT - remove sourcelang directive and keep it short
+function simplifyQuery(query: string): string {
+  return query
+    .replace(/sourcelang:\w+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Extract just the key terms for RSS fallback
+function extractKeyTerms(query: string): string {
+  return query
+    .replace(/sourcelang:\w+/g, '')
+    .replace(/[()]/g, '')
+    .split(/\s+OR\s+/i)
+    .filter(k => !k.match(/^(war|attack|military|conflict|strike|missile|drone|bombing)$/i))
+    .slice(0, 3)
+    .map(k => k.replace(/"/g, '').trim())
+    .filter(Boolean)
+    .join(' ');
 }
 
 Deno.serve(async (req) => {
@@ -98,42 +70,36 @@ Deno.serve(async (req) => {
       return ok(mode === 'geo' ? { type: 'FeatureCollection', features: [] } : { articles: [] });
     }
 
-    const langQuery = query.includes('sourcelang:') ? query : `${query} sourcelang:english`;
-    const encodedQuery = encodeURIComponent(langQuery);
+    const cleanQuery = simplifyQuery(query);
+    const encodedQuery = encodeURIComponent(cleanQuery + ' sourcelang:english');
 
     if (mode === 'geo') {
-      // Try GDELT GEO API with retry
-      const geoModes = ['PointData', 'PointHeatmap'];
-      
-      for (const geoMode of geoModes) {
-        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=1h&maxpoints=50`;
-        console.log('Trying GDELT GEO:', geoMode);
-
-        const response = await fetchWithRetry(url, 12000, 1);
+      // Try progressively wider timespans for geo data
+      for (const timespan of ['1h', '3h', '12h']) {
+        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=${timespan}&maxpoints=50`;
+        console.log(`GDELT GEO timespan=${timespan}`);
+        
+        const response = await tryFetch(url, 12000);
         if (!response) continue;
 
         try {
-          const text = await response.text();
-          const data = JSON.parse(text);
+          const data = await response.json();
           const features = data?.features || [];
           if (features.length > 0) {
-            console.log(`GDELT GEO ${geoMode}: ${features.length} features`);
+            console.log(`GEO success: ${features.length} features (${timespan})`);
             return ok(data);
           }
-        } catch {
-          console.warn('GDELT GEO parse error for mode', geoMode);
-        }
+        } catch { /* continue */ }
       }
 
-      // Fallback: use DOC API to generate geo from articles
-      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=1h`;
-      const docResponse = await fetchWithRetry(docUrl, 12000, 1);
+      // Fallback: DOC API to generate geo
+      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=24h`;
+      const docResponse = await tryFetch(docUrl, 12000);
       
       if (docResponse) {
         try {
-          const text = await docResponse.text();
-          const data = JSON.parse(text);
-          const articles = (data?.articles || []).filter((a: any) => a.language === 'English');
+          const data = await docResponse.json();
+          const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
           const features = articles.slice(0, 25).map((a: any, i: number) => {
             const loc = extractLocationFromArticle(a.title || '', a.domain || '');
             return {
@@ -160,37 +126,87 @@ Deno.serve(async (req) => {
     }
 
     // === ARTICLE MODE ===
-    // Try GDELT first with retry
-    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=1h`;
-    console.log('Fetching GDELT articles');
+    // Try GDELT with progressively wider timespans
+    for (const timespan of ['1h', '3h', '6h', '24h']) {
+      const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=${timespan}`;
+      console.log(`GDELT articles timespan=${timespan}`);
 
-    const gdeltResponse = await fetchWithRetry(gdeltUrl, 12000, 2);
-    
-    if (gdeltResponse) {
+      const response = await tryFetch(url, 12000);
+      if (!response) continue;
+
       try {
-        const text = await gdeltResponse.text();
-        const data = JSON.parse(text);
-        const articles = (data?.articles || []).filter((a: any) => 
-          !a.language || a.language === 'English'
-        );
+        const data = await response.json();
+        const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
         
         if (articles.length > 0) {
-          console.log(`GDELT articles: ${articles.length}`);
+          console.log(`GDELT articles: ${articles.length} (${timespan})`);
           return ok({ articles });
         }
-      } catch { /* fall through to RSS */ }
+      } catch { /* continue to next timespan */ }
     }
 
     // Fallback: Google News RSS via rss2json
-    console.log('GDELT returned 0 articles, trying RSS fallback');
-    const rssArticles = await fetchRssNews(query);
+    const keywords = extractKeyTerms(query);
+    console.log(`RSS fallback for: ${keywords}`);
     
-    if (rssArticles.length > 0) {
-      console.log(`RSS fallback: ${rssArticles.length} articles`);
-      return ok({ articles: rssArticles });
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US&ceid=US:en`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=25`;
+    
+    const rssResponse = await tryFetch(apiUrl, 8000);
+    if (rssResponse) {
+      try {
+        const data = await rssResponse.json();
+        if (data.status === 'ok' && data.items?.length) {
+          const articles = data.items.map((item: any) => ({
+            url: item.link || '',
+            title: (item.title || '').replace(/<[^>]*>/g, '').trim(),
+            seendate: item.pubDate || new Date().toISOString(),
+            socialimage: item.thumbnail || item.enclosure?.link || '',
+            domain: extractDomainFromUrl(item.link || ''),
+            language: 'English',
+            sourcecountry: '',
+          })).filter((a: any) => a.title && a.url);
+          
+          if (articles.length > 0) {
+            console.log(`RSS: ${articles.length} articles`);
+            return ok({ articles });
+          }
+        }
+      } catch { /* continue */ }
     }
 
-    console.log('All news sources returned 0 articles');
+    // Fallback 2: Try NewsData.io free tier or direct Google News atom
+    const atomUrl = `https://news.google.com/atom/search?q=${encodeURIComponent(keywords)}&hl=en&gl=US`;
+    const atomResponse = await tryFetch(atomUrl, 8000);
+    if (atomResponse) {
+      try {
+        const text = await atomResponse.text();
+        // Parse atom XML entries
+        const entries = text.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
+        const articles = entries.slice(0, 20).map((entry: string, i: number) => {
+          const titleMatch = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/);
+          const linkMatch = entry.match(/<link[^>]*href="([^"]*)"[^>]*\/>/);
+          const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
+          const sourceMatch = entry.match(/<source[^>]*><title[^>]*>([\s\S]*?)<\/title>/);
+          return {
+            url: linkMatch?.[1] || '',
+            title: (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim(),
+            seendate: updatedMatch?.[1] || new Date().toISOString(),
+            socialimage: '',
+            domain: sourceMatch?.[1]?.trim() || extractDomainFromUrl(linkMatch?.[1] || ''),
+            language: 'English',
+            sourcecountry: '',
+          };
+        }).filter((a: any) => a.title && a.url);
+        
+        if (articles.length > 0) {
+          console.log(`Atom: ${articles.length} articles`);
+          return ok({ articles });
+        }
+      } catch { /* continue */ }
+    }
+
+    console.log('All sources returned 0 articles');
     return ok({ articles: [] });
   } catch (error) {
     console.error('Edge function error:', error);
@@ -222,8 +238,6 @@ function extractLocationFromArticle(title: string, _domain: string): { lat: numb
     'houthi': { lat: 15.35, lng: 44.21 },
     'israel': { lat: 31.05, lng: 34.85 },
     'west bank': { lat: 31.95, lng: 35.25 },
-    'jenin': { lat: 32.46, lng: 35.29 },
-    'nablus': { lat: 32.22, lng: 35.26 },
     'hezbollah': { lat: 33.27, lng: 35.20 },
     'ukraine': { lat: 48.38, lng: 31.17 },
     'kyiv': { lat: 50.45, lng: 30.52 },

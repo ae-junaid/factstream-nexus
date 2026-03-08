@@ -47,7 +47,7 @@ function getMockNews(conflictId: string): NewsItem[] {
   return MOCK_NEWS_BY_CONFLICT[conflictId] || MOCK_NEWS_BY_CONFLICT['iran-israel'];
 }
 
-export function useGdeltNews(conflict: ConflictZone, refreshInterval = 60000) {
+export function useGdeltNews(conflict: ConflictZone, refreshInterval = 120000) {
   const [news, setNews] = useState<NewsItem[]>(getMockNews(conflict.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export function useGdeltNews(conflict: ConflictZone, refreshInterval = 60000) {
   return { news, loading, error, refetch: fetchNews };
 }
 
-export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 60000) {
+export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000) {
   const [events, setEvents] = useState<ConflictEvent[]>(getMockEvents(conflict.id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
