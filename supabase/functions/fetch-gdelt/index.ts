@@ -155,6 +155,42 @@ Deno.serve(async (req) => {
           }
         } catch { /* continue */ }
       }
+      // Fallback: use Google News RSS/Atom and extract locations from titles
+      const geoKeywords = extractKeyTerms(query);
+      console.log(`Geo RSS fallback for: ${geoKeywords}`);
+      const geoAtomUrl = `https://news.google.com/atom/search?q=${encodeURIComponent(geoKeywords)}&hl=en&gl=US`;
+      const geoAtomResponse = await tryFetch(geoAtomUrl, 8000);
+      if (geoAtomResponse) {
+        try {
+          const text = await geoAtomResponse.text();
+          const entries = text.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
+          const geoFeatures = entries.slice(0, 30).map((entry: string) => {
+            const titleMatch = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/);
+            const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
+            const linkMatch = entry.match(/<link[^>]*href="([^"]*)"[^>]*\/>/);
+            const sourceMatch = entry.match(/<source[^>]*><title[^>]*>([\s\S]*?)<\/title>/);
+            const cleanTitle = (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+            const loc = extractLocationFromArticle(cleanTitle);
+            const gnUrl = linkMatch?.[1] || '';
+            return {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
+              properties: {
+                name: cleanTitle,
+                url: cleanTitle ? `https://www.google.com/search?q=${encodeURIComponent(cleanTitle)}&btnI=1` : gnUrl,
+                urlpubtimedate: updatedMatch?.[1] || new Date().toISOString(),
+                html: cleanTitle,
+                domain: sourceMatch?.[1]?.trim() || extractDomainFromUrl(gnUrl),
+              },
+            };
+          }).filter((f: any) => f.geometry.coordinates[0] !== 0 && f.geometry.coordinates[1] !== 0);
+          if (geoFeatures.length > 0) {
+            console.log(`Geo Atom fallback: ${geoFeatures.length} features`);
+            return ok({ type: 'FeatureCollection', features: geoFeatures });
+          }
+        } catch { /* continue */ }
+      }
+
       return ok({ type: 'FeatureCollection', features: [] });
     }
 
