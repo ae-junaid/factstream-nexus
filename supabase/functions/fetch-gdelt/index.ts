@@ -212,19 +212,22 @@ Deno.serve(async (req) => {
           const linkMatch = entry.match(/<link[^>]*href="([^"]*)"[^>]*\/>/);
           const updatedMatch = entry.match(/<updated>([\s\S]*?)<\/updated>/);
           const sourceMatch = entry.match(/<source[^>]*><title[^>]*>([\s\S]*?)<\/title>/);
+          const gnUrl = linkMatch?.[1] || '';
+          // Build a Google News search URL that actually opens
+          const cleanTitle = (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+          const searchUrl = cleanTitle ? `https://www.google.com/search?q=${encodeURIComponent(cleanTitle)}&btnI=1` : gnUrl;
           return {
-            url: linkMatch?.[1] || '',
-            title: (titleMatch?.[1] || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim(),
+            url: searchUrl,
+            title: cleanTitle,
             seendate: updatedMatch?.[1] || new Date().toISOString(),
             socialimage: '',
-            domain: sourceMatch?.[1]?.trim() || extractDomainFromUrl(linkMatch?.[1] || ''),
+            domain: sourceMatch?.[1]?.trim() || extractDomainFromUrl(gnUrl),
             language: 'English', sourcecountry: '',
           };
         }).filter((a: any) => a.title && a.url);
         if (articles.length > 0) {
           console.log(`Atom: ${articles.length} articles`);
-          const enriched = await enrichArticlesWithImages(articles);
-          return ok({ articles: enriched });
+          return ok({ articles });
         }
       } catch { /* continue */ }
     }

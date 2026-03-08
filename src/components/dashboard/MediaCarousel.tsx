@@ -64,7 +64,7 @@ export default function MediaCarousel({ news = [] }: MediaCarouselProps) {
       <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-card/80 border-b border-border">
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-red pulse-dot" />
-          <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">LIVE ARTICLES</span>
+          <span className="text-[10px] font-bold tracking-widest text-primary glow-text-cyan">BREAKING NEWS</span>
         </div>
         <span className="text-[9px] text-muted-foreground font-mono">{news.length} STORIES</span>
       </div>
