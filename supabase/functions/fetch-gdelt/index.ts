@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
           
           if (articles.length > 0) {
             console.log(`RSS: ${articles.length} articles`);
-            const enriched = await enrichWithOgImages(articles);
+            const enriched = enrichWithImages(articles);
             return ok({ articles: enriched });
           }
         }
