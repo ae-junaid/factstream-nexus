@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       const geoModes = ['PointData', 'PointHeatmap'];
       
       for (const geoMode of geoModes) {
-        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=7d&maxpoints=50`;
+        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=${geoMode}&format=GeoJSON&timespan=1h&maxpoints=50`;
         console.log('Trying GDELT GEO:', geoMode);
 
         const response = await fetchWithRetry(url, 12000, 1);
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       }
 
       // Fallback: use DOC API to generate geo from articles
-      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=72h`;
+      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=1h`;
       const docResponse = await fetchWithRetry(docUrl, 12000, 1);
       
       if (docResponse) {
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 
     // === ARTICLE MODE ===
     // Try GDELT first with retry
-    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=48h`;
+    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=40&format=json&sort=DateDesc&timespan=1h`;
     console.log('Fetching GDELT articles');
 
     const gdeltResponse = await fetchWithRetry(gdeltUrl, 12000, 2);
