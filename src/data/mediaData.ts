@@ -65,7 +65,7 @@ export const mockWarMedia: WarMedia[] = [
   {
     id: 'wm-005',
     type: 'video',
-    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=600&h=340&fit=crop',
     caption: 'Cruise missile impact footage — southern Beirut suburbs overnight strike',
     source: '@LBCINews',
