@@ -28,16 +28,16 @@ const trendColor = {
   stable: 'text-muted-foreground',
 };
 
-export default function StatsBanner({ conflict, events, news }: StatsBannerProps) {
+export default function StatsBanner({ conflict, events = [], news = [] }: StatsBannerProps) {
   // Derive live stats from actual fetched data
-  const eventsByType = events.reduce((acc, e) => {
+  const eventsByType = (events || []).reduce((acc, e) => {
     acc[e.type] = (acc[e.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const verifiedCount = events.filter(e => e.credibility === 'verified').length;
-  const sourceCount = new Set(events.map(e => e.source)).size;
-  const newsSourceCount = new Set(news.map(n => n.source)).size;
+  const verifiedCount = (events || []).filter(e => e.credibility === 'verified').length;
+  const sourceCount = new Set((events || []).map(e => e.source)).size;
+  const newsSourceCount = new Set((news || []).map(n => n.source)).size;
 
   const stats: LiveStat[] = [
     { label: 'Live Events', value: String(events.length), trend: 'up', source: 'GDELT' },
