@@ -89,7 +89,7 @@ export const mockWarMedia: WarMedia[] = [
   {
     id: 'wm-007',
     type: 'video',
-    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
     thumbnail: 'https://images.unsplash.com/photo-1590081543655-f3c3c1a56d73?w=600&h=340&fit=crop',
     caption: 'Drone footage shows ballistic missile intercepted over Riyadh — Saudi MoD',
     source: '@SaudiMoD',
