@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Shield, Sun, Moon } from 'lucide-react';
+import { Shield, Sun, Moon, ChevronDown } from 'lucide-react';
+import { useConflict } from '@/contexts/ConflictContext';
 
 export default function DashboardHeader() {
   const [time, setTime] = useState(new Date());
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { selectedConflict, setSelectedConflict, allConflicts } = useConflict();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -35,10 +38,51 @@ export default function DashboardHeader() {
           <p className="text-[9px] text-muted-foreground tracking-widest">OPEN SOURCE INTELLIGENCE DASHBOARD</p>
         </div>
       </div>
+
+      {/* Conflict Selector */}
+      <div className="relative">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded border border-border bg-secondary/50 hover:bg-secondary transition-colors"
+        >
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-red pulse-dot" />
+          <span className="text-[10px] font-bold tracking-wider text-foreground">
+            {selectedConflict.shortLabel}
+          </span>
+          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+        </button>
+        {dropdownOpen && (
+          <>
+            <div className="fixed inset-0 z-[999]" onClick={() => setDropdownOpen(false)} />
+            <div className="absolute top-full mt-1 right-0 z-[1000] min-w-[240px] bg-card border border-border rounded shadow-lg overflow-hidden">
+              {allConflicts.map(conflict => (
+                <button
+                  key={conflict.id}
+                  onClick={() => {
+                    setSelectedConflict(conflict);
+                    setDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-[11px] tracking-wider hover:bg-secondary/50 transition-colors border-b border-border last:border-b-0 ${
+                    selectedConflict.id === conflict.id ? 'bg-primary/10 text-primary font-bold' : 'text-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {selectedConflict.id === conflict.id && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                    <span>{conflict.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-mono">
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-ops-green pulse-dot" />
-          <span className="text-ops-green tracking-wider">SYSTEMS ONLINE</span>
+          <span className="text-ops-green tracking-wider">LIVE</span>
         </div>
         <span className="text-border">|</span>
         <span>{date}</span>
