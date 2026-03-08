@@ -26,7 +26,7 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     id: 'ukraine-russia',
     label: 'Ukraine — Russia',
     shortLabel: 'UKRAINE-RUSSIA',
-    gdeltQuery: '(Ukraine OR Russia OR Kyiv OR Crimea OR Donbas OR Kharkiv OR Zaporizhzhia OR Bakhmut) (war OR attack OR military OR conflict OR offensive OR missile OR drone OR front)',
+    gdeltQuery: '(Ukraine OR Russia OR Kyiv OR Crimea OR Donbas OR Kharkiv OR Zaporizhzhia OR Bakhmut) (war OR attack OR military OR conflict OR offensive OR missile OR drone OR front) sourcelang:english',
     center: [49, 33],
     zoom: 5,
     bbox: { lamin: 44, lomin: 22, lamax: 56, lomax: 42 },
