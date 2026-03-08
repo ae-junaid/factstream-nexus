@@ -3,6 +3,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const ok = (data: unknown) => new Response(
+  JSON.stringify({ success: true, data }),
+  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,16 +17,13 @@ Deno.serve(async (req) => {
     const { query, mode } = await req.json();
 
     if (!query) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Query is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return ok(mode === 'geo' ? { type: 'FeatureCollection', features: [] } : { articles: [] });
     }
 
     const encodedQuery = encodeURIComponent(query);
 
     if (mode === 'geo') {
-      // GDELT GEO API — use PointData mode for proper GeoJSON
+      // GDELT GEO API v2 — use PointData for GeoJSON points
       const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=7d&maxpoints=50`;
       console.log('Fetching GDELT GEO:', url);
 
@@ -35,11 +37,8 @@ Deno.serve(async (req) => {
         if (!response.ok) {
           const text = await response.text();
           console.error('GDELT GEO error:', response.status, text.substring(0, 200));
-          // Fallback: return empty features so UI doesn't break
-          return new Response(
-            JSON.stringify({ success: true, data: { type: 'FeatureCollection', features: [] } }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          // Always return 200 with empty data
+          return ok({ type: 'FeatureCollection', features: [] });
         }
 
         const text = await response.text();
@@ -47,26 +46,20 @@ Deno.serve(async (req) => {
         try {
           data = JSON.parse(text);
         } catch {
-          console.error('GDELT GEO parse error, returning empty');
+          console.error('GDELT GEO parse error');
           data = { type: 'FeatureCollection', features: [] };
         }
 
-        return new Response(
-          JSON.stringify({ success: true, data }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return ok(data);
       } catch (fetchErr) {
         clearTimeout(timeout);
-        console.error('GDELT GEO fetch failed:', fetchErr);
-        return new Response(
-          JSON.stringify({ success: true, data: { type: 'FeatureCollection', features: [] } }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        console.error('GDELT GEO fetch failed:', fetchErr instanceof Error ? fetchErr.message : fetchErr);
+        return ok({ type: 'FeatureCollection', features: [] });
       }
     }
 
     // Default: Article list
-    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=75&format=json&sort=DateDesc&timespan=48h`;
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=50&format=json&sort=DateDesc&timespan=24h`;
     console.log('Fetching GDELT articles:', url);
 
     const controller = new AbortController();
@@ -79,10 +72,7 @@ Deno.serve(async (req) => {
       if (!response.ok) {
         const text = await response.text();
         console.error('GDELT article error:', response.status, text.substring(0, 200));
-        return new Response(
-          JSON.stringify({ success: true, data: { articles: [] } }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return ok({ articles: [] });
       }
 
       const text = await response.text();
@@ -93,24 +83,14 @@ Deno.serve(async (req) => {
         data = { articles: [] };
       }
 
-      return new Response(
-        JSON.stringify({ success: true, data }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return ok(data);
     } catch (fetchErr) {
       clearTimeout(timeout);
-      console.error('GDELT articles fetch failed:', fetchErr);
-      return new Response(
-        JSON.stringify({ success: true, data: { articles: [] } }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('GDELT articles fetch failed:', fetchErr instanceof Error ? fetchErr.message : fetchErr);
+      return ok({ articles: [] });
     }
   } catch (error) {
     console.error('Edge function error:', error);
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ success: false, error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return ok({ articles: [] });
   }
 });
