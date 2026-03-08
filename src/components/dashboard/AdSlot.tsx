@@ -8,7 +8,7 @@ interface AdSlotProps {
 
 const AdSlot = forwardRef<HTMLDivElement, AdSlotProps>(({ format, className = '' }, ref) => {
   const sizes: Record<string, string> = {
-    banner: 'h-[90px] w-full',
+    banner: 'h-[120px] w-full',
     sidebar: 'h-[250px] w-full',
     inline: 'h-[60px] w-full',
   };
