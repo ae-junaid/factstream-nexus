@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import NewsTicker from '@/components/dashboard/NewsTicker';
+import StatsBanner from '@/components/dashboard/StatsBanner';
 import UnifiedMap from '@/components/dashboard/UnifiedMap';
 import EventTimeline from '@/components/dashboard/EventTimeline';
-import StatsPanel from '@/components/dashboard/StatsPanel';
 import EventDetail from '@/components/dashboard/EventDetail';
 import MediaCarousel from '@/components/dashboard/MediaCarousel';
 import ThreatAssessment from '@/components/dashboard/ThreatAssessment';
@@ -19,39 +19,33 @@ const Index = () => {
       <div className="scanline-overlay" />
       <DashboardHeader />
       <NewsTicker news={mockNews} />
+      <StatsBanner stats={mockStats} />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col xl:flex-row min-h-0 overflow-auto xl:overflow-hidden">
+      {/* Main 3-column grid */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0 overflow-auto lg:overflow-hidden">
 
-        {/* LEFT — Unified Map (dominant) */}
-        <div className="xl:flex-1 flex flex-col min-h-[350px] xl:min-h-0 border-b xl:border-b-0 xl:border-r border-border">
-          {/* Map */}
-          <div className="flex-1 relative min-h-[300px] xl:min-h-0">
+        {/* LEFT — Event Timeline */}
+        <div className="lg:col-span-3 flex flex-col min-h-[300px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border bg-card">
+          <EventTimeline events={mockEvents} onEventSelect={setSelectedEvent} />
+        </div>
+
+        {/* CENTER — Map + Media */}
+        <div className="lg:col-span-5 flex flex-col min-h-[350px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border">
+          <div className="flex-1 relative min-h-[250px] lg:min-h-0">
             <UnifiedMap events={mockEvents} onEventSelect={setSelectedEvent} />
             <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
           </div>
-          {/* Media strip below map */}
-          <div className="h-32 sm:h-36 border-t border-border shrink-0">
+          <div className="h-36 sm:h-40 border-t border-border shrink-0">
             <MediaCarousel media={mockWarMedia} />
           </div>
         </div>
 
-        {/* RIGHT — Intel panels */}
-        <div className="w-full xl:w-[380px] 2xl:w-[420px] flex flex-col min-h-0 shrink-0">
-          {/* Event Timeline */}
-          <div className="flex-1 min-h-[200px] xl:min-h-0 overflow-hidden border-b border-border">
-            <EventTimeline events={mockEvents} onEventSelect={setSelectedEvent} />
-          </div>
-          {/* Stats */}
-          <div className="h-auto xl:h-44 border-b border-border shrink-0">
-            <StatsPanel stats={mockStats} />
-          </div>
-          {/* Threat Assessment */}
-          <div className="h-auto xl:h-48 border-b border-border shrink-0">
+        {/* RIGHT — Threat + Airspace */}
+        <div className="lg:col-span-4 flex flex-col min-h-[300px] lg:min-h-0 bg-card">
+          <div className="flex-1 min-h-[200px] lg:min-h-0 overflow-hidden border-b border-border">
             <ThreatAssessment />
           </div>
-          {/* Airspace */}
-          <div className="h-auto xl:h-40 shrink-0">
+          <div className="flex-1 min-h-[200px] lg:min-h-0 overflow-hidden">
             <AirspaceMonitor />
           </div>
         </div>
