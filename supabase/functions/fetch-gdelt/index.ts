@@ -121,43 +121,9 @@ Deno.serve(async (req) => {
     const encodedQuery = encodeURIComponent(cleanQuery + ' sourcelang:english');
 
     if (mode === 'geo') {
-      for (const timespan of ['1h', '3h', '12h']) {
-        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=${timespan}&maxpoints=50`;
-        console.log(`GDELT GEO timespan=${timespan}`);
-        const response = await tryFetch(url, 12000);
-        if (!response) continue;
-        try {
-          const data = await response.json();
-          if (data?.features?.length > 0) {
-            console.log(`GEO success: ${data.features.length} features (${timespan})`);
-            return ok(data);
-          }
-        } catch { /* continue */ }
-      }
-
-      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=30&format=json&sort=DateDesc&timespan=24h`;
-      const docResponse = await tryFetch(docUrl, 12000);
-      if (docResponse) {
-        try {
-          const data = await docResponse.json();
-          const articles = (data?.articles || []).filter((a: any) => !a.language || a.language === 'English');
-          const features = articles.slice(0, 25).map((a: any) => {
-            const loc = extractLocationFromArticle(a.title || '');
-            return {
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
-              properties: { name: a.title || 'Unknown event', url: a.url || '', urlpubtimedate: a.seendate || new Date().toISOString(), html: a.title || '', domain: a.domain || '' },
-            };
-          }).filter((f: any) => f.geometry.coordinates[0] !== 0 && f.geometry.coordinates[1] !== 0);
-          if (features.length > 0) {
-            console.log(`Doc-to-geo fallback: ${features.length} features`);
-            return ok({ type: 'FeatureCollection', features });
-          }
-        } catch { /* continue */ }
-      }
-      // Fallback: use Google News RSS/Atom and extract locations from titles
+      // Primary: Google News Atom feed (fast, reliable, no rate limits)
       const geoKeywords = extractKeyTerms(query);
-      console.log(`Geo RSS fallback for: ${geoKeywords}`);
+      console.log(`Geo Atom primary for: ${geoKeywords}`);
       const geoAtomUrl = `https://news.google.com/atom/search?q=${encodeURIComponent(geoKeywords)}&hl=en&gl=US`;
       const geoAtomResponse = await tryFetch(geoAtomUrl, 8000);
       if (geoAtomResponse) {
@@ -185,8 +151,22 @@ Deno.serve(async (req) => {
             };
           }).filter((f: any) => f.geometry.coordinates[0] !== 0 && f.geometry.coordinates[1] !== 0);
           if (geoFeatures.length > 0) {
-            console.log(`Geo Atom fallback: ${geoFeatures.length} features`);
+            console.log(`Geo Atom: ${geoFeatures.length} features`);
             return ok({ type: 'FeatureCollection', features: geoFeatures });
+          }
+        } catch { /* continue */ }
+      }
+
+      // Secondary fallback: GDELT geo API (single attempt)
+      const geoUrl = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&mode=PointData&format=GeoJSON&timespan=12h&maxpoints=50`;
+      console.log('GDELT GEO fallback');
+      const geoResponse = await tryFetch(geoUrl, 8000);
+      if (geoResponse) {
+        try {
+          const data = await geoResponse.json();
+          if (data?.features?.length > 0) {
+            console.log(`GEO fallback: ${data.features.length} features`);
+            return ok(data);
           }
         } catch { /* continue */ }
       }
