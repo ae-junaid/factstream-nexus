@@ -48,7 +48,7 @@ export const CONFLICT_ZONES: ConflictZone[] = [
     id: 'sudan',
     label: 'Sudan Civil War',
     shortLabel: 'SUDAN',
-    gdeltQuery: '(Sudan OR Khartoum OR RSF OR Darfur OR "Rapid Support Forces") (war OR conflict OR attack OR military OR humanitarian OR displacement)',
+    gdeltQuery: '(Sudan OR Khartoum OR RSF OR Darfur OR "Rapid Support Forces") (war OR conflict OR attack OR military OR humanitarian OR displacement) sourcelang:english',
     center: [15, 30],
     zoom: 5,
     bbox: { lamin: 8, lomin: 22, lamax: 23, lomax: 40 },
