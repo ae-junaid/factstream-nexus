@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, ChevronUp, Loader2, Activity } from 'lucide-react';
 import { ConflictZone } from '@/lib/conflicts';
-import { useGdeltEvents } from '@/hooks/useGdeltData';
+import { ConflictEvent } from '@/data/mockData';
 
 interface ThreatZone {
   id: string;
@@ -52,10 +52,11 @@ const levelPercent: Record<string, number> = {
 
 interface ThreatAssessmentProps {
   conflict: ConflictZone;
+  events?: ConflictEvent[];
+  loading?: boolean;
 }
 
-export default function ThreatAssessment({ conflict }: ThreatAssessmentProps) {
-  const { events, loading } = useGdeltEvents(conflict, 180000);
+export default function ThreatAssessment({ conflict, events = [], loading = false }: ThreatAssessmentProps) {
 
   const threats: ThreatZone[] = useMemo(() => {
     const regionMap: Record<string, number> = {};

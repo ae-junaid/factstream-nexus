@@ -55,7 +55,7 @@ function DashboardContent() {
             <ConflictOverview conflict={selectedConflict} events={events} news={news} />
           </div>
           <div className="min-h-0 overflow-hidden border-b border-border" style={{ flex: '2 1 0%' }}>
-            <ThreatAssessment conflict={selectedConflict} />
+            <ThreatAssessment conflict={selectedConflict} events={events} loading={eventsLoading} />
           </div>
           <AdSlot format="inline" className="shrink-0 m-2" />
         </div>

@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Megaphone } from 'lucide-react';
 
 interface AdSlotProps {
@@ -5,7 +6,7 @@ interface AdSlotProps {
   className?: string;
 }
 
-export default function AdSlot({ format, className = '' }: AdSlotProps) {
+const AdSlot = forwardRef<HTMLDivElement, AdSlotProps>(({ format, className = '' }, ref) => {
   const sizes: Record<string, string> = {
     banner: 'h-[90px] w-full',
     sidebar: 'h-[250px] w-full',
@@ -13,7 +14,7 @@ export default function AdSlot({ format, className = '' }: AdSlotProps) {
   };
 
   return (
-    <div className={`${sizes[format]} ${className} flex items-center justify-center border border-dashed border-border/50 bg-card/30 rounded`}>
+    <div ref={ref} className={`${sizes[format]} ${className} flex items-center justify-center border border-dashed border-border/50 bg-card/30 rounded`}>
       {/* 
         Replace this placeholder with your Google AdSense code:
         <ins className="adsbygoogle"
@@ -29,4 +30,8 @@ export default function AdSlot({ format, className = '' }: AdSlotProps) {
       </div>
     </div>
   );
-}
+});
+
+AdSlot.displayName = 'AdSlot';
+
+export default AdSlot;
