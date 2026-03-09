@@ -1,6 +1,7 @@
+import { useRef, useCallback } from 'react';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
 import { motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronsDown } from 'lucide-react';
 
 const colorMap: Record<string, string> = {
   'ops-red': 'text-ops-red border-ops-red bg-ops-red/10',
