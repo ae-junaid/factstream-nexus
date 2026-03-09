@@ -40,6 +40,7 @@ export const EVENT_TYPE_CONFIG: Record<EventType, { label: string; color: string
   humanitarian: { label: 'HUMANITARIAN', color: 'ops-green' },
   naval: { label: 'NAVAL', color: 'ops-cyan' },
   cyber: { label: 'CYBER', color: 'ops-amber' },
+  general: { label: 'REPORT', color: 'ops-blue' },
 };
 
 export const CREDIBILITY_CONFIG: Record<SourceCredibility, { label: string; color: string }> = {

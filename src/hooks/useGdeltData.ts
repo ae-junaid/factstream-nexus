@@ -7,12 +7,12 @@ function classifyArticle(title: string): EventType {
   const t = title.toLowerCase();
   if (t.includes('airstrike') || t.includes('air strike') || t.includes('bombing') || t.includes('bomb')) return 'airstrike';
   if (t.includes('rocket') || t.includes('missile') || t.includes('projectile') || t.includes('barrage')) return 'rocket_attack';
-  if (t.includes('ground') || t.includes('troops') || t.includes('infantry') || t.includes('raid') || t.includes('operation') || t.includes('offensive')) return 'ground_operation';
+  if (t.includes('ground offensive') || t.includes('ground operation') || t.includes('ground troops') || t.includes('infantry') || t.includes('ground assault') || t.includes('ground forces') || t.includes('urban combat') || t.includes('street fighting')) return 'ground_operation';
   if (t.includes('diplomatic') || t.includes('ceasefire') || t.includes('negotiate') || t.includes('talks') || t.includes('UN') || t.includes('summit')) return 'diplomatic';
   if (t.includes('humanitarian') || t.includes('aid') || t.includes('refugee') || t.includes('displaced') || t.includes('relief') || t.includes('food') || t.includes('water')) return 'humanitarian';
   if (t.includes('navy') || t.includes('naval') || t.includes('ship') || t.includes('maritime') || t.includes('carrier') || t.includes('vessel')) return 'naval';
   if (t.includes('cyber') || t.includes('hack') || t.includes('internet') || t.includes('digital')) return 'cyber';
-  return 'ground_operation';
+  return 'general';
 }
 
 function assessCredibility(domain: string): SourceCredibility {
