@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, ChevronUp, Loader2, Activity } from 'lucide-react';
+import { ShieldAlert, ChevronUp, Loader2, Activity, ChevronsDown } from 'lucide-react';
 import { ConflictZone } from '@/lib/conflicts';
 import { ConflictEvent } from '@/data/mockData';
 
