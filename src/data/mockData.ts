@@ -1,4 +1,4 @@
-export type EventType = 'airstrike' | 'ground_operation' | 'rocket_attack' | 'diplomatic' | 'humanitarian' | 'naval' | 'cyber';
+export type EventType = 'airstrike' | 'ground_operation' | 'rocket_attack' | 'diplomatic' | 'humanitarian' | 'naval' | 'cyber' | 'general';
 export type SourceCredibility = 'verified' | 'reliable' | 'unconfirmed' | 'disputed';
 
 export interface ConflictEvent {
