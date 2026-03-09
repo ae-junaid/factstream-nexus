@@ -43,15 +43,30 @@ export default function EventTimeline({ events, onEventSelect, loading }: EventT
     }
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+    el.parentElement?.classList.toggle('scrolled-bottom', isAtBottom);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <h2 className="text-[11px] font-bold tracking-widest text-primary glow-text-cyan">EVENT TIMELINE</h2>
-        <span className="text-[10px] text-muted-foreground">
-          {loading ? 'Loading...' : `${events.length} events`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground">
+            {loading ? 'Loading...' : `${events.length} events`}
+          </span>
+          {events.length > 0 && (
+            <ChevronsDown className="w-3 h-3 text-primary/50 animate-bounce" />
+          )}
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="scroll-fade-container flex-1 overflow-hidden">
+        <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-2 space-y-1">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
