@@ -100,6 +100,14 @@ export default function ThreatAssessment({ conflict, events = [], loading = fals
   const criticalCount = threats.filter(t => t.level === 'critical' || t.level === 'high').length;
   const totalEvents = threats.reduce((sum, t) => sum + t.eventCount, 0);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+    el.parentElement?.classList.toggle('scrolled-bottom', isAtBottom);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -122,13 +130,15 @@ export default function ThreatAssessment({ conflict, events = [], loading = fals
               <span className="text-[9px] text-muted-foreground">
                 {totalEvents} total
               </span>
+              <ChevronsDown className="w-3 h-3 text-ops-red/50 animate-bounce" />
             </>
           )}
         </div>
       </div>
 
       {/* Threat cards */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="scroll-fade-container flex-1 overflow-hidden">
+        <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-2 space-y-1">
         {loading && threats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 gap-2">
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
