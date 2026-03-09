@@ -121,6 +121,7 @@ export default function EventTimeline({ events, onEventSelect, loading }: EventT
             );
           })
         )}
+        </div>
       </div>
     </div>
   );

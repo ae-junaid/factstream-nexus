@@ -287,6 +287,8 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
             </span>
           </div>
         </div>
+        </div>
+      </div>
       </div>
     </div>
   );
