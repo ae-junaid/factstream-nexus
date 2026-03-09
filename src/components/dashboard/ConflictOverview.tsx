@@ -123,6 +123,14 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
     return { recentEvents, liveSources };
   }, [events, news]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+    el.parentElement?.classList.toggle('scrolled-bottom', isAtBottom);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -141,10 +149,12 @@ export default function ConflictOverview({ conflict, events, news }: ConflictOve
         <div className="flex items-center gap-1.5">
           <Radio className="w-2.5 h-2.5 text-ops-green pulse-dot" />
           <span className="text-[9px] text-ops-green font-bold tracking-wider">LIVE</span>
+          <ChevronsDown className="w-3 h-3 text-primary/50 animate-bounce ml-1" />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="scroll-fade-container flex-1 overflow-hidden">
+        <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-3 space-y-3">
         {/* Parties row */}
         <motion.div
           initial={{ opacity: 0, y: 4 }}
