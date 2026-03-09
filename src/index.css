@@ -215,20 +215,44 @@
   background: hsl(var(--card)) !important;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — visible & clear */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+  background: hsl(var(--secondary));
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 2px;
+  background: hsl(var(--primary) / 0.4);
+  border-radius: 3px;
+  border: 1px solid hsl(var(--secondary));
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.5);
+  background: hsl(var(--primary) / 0.7);
+}
+
+/* Scroll fade hint — bottom gradient overlay */
+.scroll-fade-container {
+  position: relative;
+}
+
+.scroll-fade-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 6px;
+  height: 32px;
+  background: linear-gradient(to bottom, transparent, hsl(var(--card)));
+  pointer-events: none;
+  z-index: 2;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.scroll-fade-container.scrolled-bottom::after {
+  display: none;
 }
