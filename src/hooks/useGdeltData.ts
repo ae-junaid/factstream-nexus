@@ -125,6 +125,16 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
         const coords = f.geometry?.coordinates || [0, 0];
         const title = props.name || props.html || `Event in ${conflict.shortLabel} region`;
         const domain = props.url ? extractDomain(props.url) : props.domain || 'GDELT';
+
+        // Try to geocode from title for precise location
+        const geo = geocodeFromTitle(title);
+        const lat = geo ? geo.lat : (coords[1] || coords[0]);
+        const lng = geo ? geo.lng : (coords[0] || coords[1]);
+        const locationName = geo ? geo.name : (props.name?.substring(0, 50) || `${(coords[1] || 0).toFixed(2)}°N, ${(coords[0] || 0).toFixed(2)}°E`);
+
+        // Add small random offset to prevent exact overlap of markers at same location
+        const jitter = () => (Math.random() - 0.5) * 0.3;
+
         return {
           id: `gdelt-e-${i}-${Date.now()}`,
           timestamp: props.urlpubtimedate || new Date().toISOString(),
@@ -132,9 +142,9 @@ export function useGdeltEvents(conflict: ConflictZone, refreshInterval = 120000)
           title: title.length > 120 ? title.substring(0, 117) + '...' : title,
           description: props.html || title,
           location: {
-            lat: coords[1] || coords[0],
-            lng: coords[0] || coords[1],
-            name: props.name?.substring(0, 50) || `${coords[1]?.toFixed(2)}°N, ${coords[0]?.toFixed(2)}°E`,
+            lat: lat + jitter(),
+            lng: lng + jitter(),
+            name: locationName,
           },
           source: domain,
           credibility: assessCredibility(domain),
