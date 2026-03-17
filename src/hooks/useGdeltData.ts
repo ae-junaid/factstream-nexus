@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ConflictZone } from '@/lib/conflicts';
 import { ConflictEvent, NewsItem, EventType, SourceCredibility, MOCK_EVENTS_BY_CONFLICT, MOCK_NEWS_BY_CONFLICT } from '@/data/mockData';
+import { geocodeFromTitle } from '@/lib/geocoding';
 
 function classifyArticle(title: string): EventType {
   const t = title.toLowerCase();
