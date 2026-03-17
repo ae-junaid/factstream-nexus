@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
+import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG, EventType } from '@/data/mockData';
 import { ConflictZone } from '@/lib/conflicts';
 import { Crosshair, Maximize2, Minimize2, Radio } from 'lucide-react';
+import MapLegend from './MapLegend';
+import TimelineSlider from './TimelineSlider';
 
 const eventColorMap: Record<string, string> = {
   'ops-red': '#e04040',
@@ -17,15 +19,36 @@ interface UnifiedMapProps {
   events: ConflictEvent[];
   onEventSelect?: (event: ConflictEvent) => void;
   conflict: ConflictZone;
+  highlightedEventId?: string | null;
 }
 
-export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedMapProps) {
+export default function UnifiedMap({ events, onEventSelect, conflict, highlightedEventId }: UnifiedMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const eventsLayer = useRef<L.LayerGroup>(L.layerGroup());
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const [activeFilters, setActiveFilters] = useState<EventType[] | undefined>(undefined);
+  const [timeRange, setTimeRange] = useState<[Date, Date] | null>(null);
+
+  const toggleFilter = useCallback((type: EventType) => {
+    setActiveFilters(prev => {
+      if (!prev) {
+        // First click: show only this type
+        const allTypes = Object.keys(EVENT_TYPE_CONFIG) as EventType[];
+        return allTypes.filter(t => t !== type);
+      }
+      if (prev.includes(type)) {
+        const next = prev.filter(t => t !== type);
+        return next.length === 0 ? undefined : next; // if nothing filtered, show all
+      }
+      const next = [...prev, type];
+      if (next.length === Object.keys(EVENT_TYPE_CONFIG).length) return undefined;
+      return next;
+    });
+  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -74,26 +97,40 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
     }
   }, [conflict.id]);
 
+  // Filter events by type and time
+  const filteredEvents = events.filter(event => {
+    if (activeFilters && !activeFilters.includes(event.type)) return false;
+    if (timeRange) {
+      const t = new Date(event.timestamp).getTime();
+      if (t < timeRange[0].getTime() || t > timeRange[1].getTime()) return false;
+    }
+    return true;
+  });
+
   // Event markers
   useEffect(() => {
     const lg = eventsLayer.current;
     lg.clearLayers();
+    markersRef.current.clear();
 
-    events.forEach(event => {
+    filteredEvents.forEach(event => {
       const config = EVENT_TYPE_CONFIG[event.type] || { label: 'EVENT', color: 'ops-cyan' };
       const color = eventColorMap[config.color] || '#1ac8db';
       const credConfig = CREDIBILITY_CONFIG[event.credibility] || { label: 'UNCONFIRMED', color: 'ops-amber' };
 
       if (!event.location.lat || !event.location.lng) return;
 
+      const isHighlighted = highlightedEventId === event.id;
+      const size = isHighlighted ? 16 : 10;
+
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="width:10px;height:10px;background:${color};border:2px solid ${color}88;border-radius:50%;box-shadow:0 0 10px ${color}66;"></div>`,
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
+        html: `<div style="width:${size}px;height:${size}px;background:${color};border:${isHighlighted ? '3' : '2'}px solid ${isHighlighted ? '#fff' : color + '88'};border-radius:50%;box-shadow:0 0 ${isHighlighted ? '20' : '10'}px ${color}${isHighlighted ? '' : '66'};transition:all 0.3s;"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
       });
 
-      const marker = L.marker([event.location.lat, event.location.lng], { icon });
+      const marker = L.marker([event.location.lat, event.location.lng], { icon, zIndexOffset: isHighlighted ? 1000 : 0 });
       marker.bindPopup(`
         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;min-width:180px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -113,8 +150,20 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
         }).addTo(lg);
       }
       marker.addTo(lg);
+      markersRef.current.set(event.id, marker);
     });
-  }, [events, onEventSelect]);
+  }, [filteredEvents, onEventSelect, highlightedEventId]);
+
+  // Pan to highlighted event
+  useEffect(() => {
+    if (!highlightedEventId || !mapInstance.current) return;
+    const marker = markersRef.current.get(highlightedEventId);
+    if (marker) {
+      const ll = marker.getLatLng();
+      mapInstance.current.setView(ll, Math.max(mapInstance.current.getZoom(), 6), { animate: true });
+      marker.openPopup();
+    }
+  }, [highlightedEventId]);
 
   useEffect(() => {
     const handler = () => {
@@ -137,7 +186,9 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
       <div className="absolute top-2 left-2 z-[500] flex items-center gap-1">
         <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-border rounded px-2 py-1">
           <Crosshair className="w-3 h-3 text-primary" />
-          <span className="text-[10px] font-bold tracking-wider text-primary">{events.length} EVENTS</span>
+          <span className="text-[10px] font-bold tracking-wider text-primary">
+            {filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ''} EVENTS
+          </span>
         </div>
       </div>
 
@@ -162,6 +213,12 @@ export default function UnifiedMap({ events, onEventSelect, conflict }: UnifiedM
           <span className="text-[9px] text-ops-green font-bold tracking-wider">LIVE</span>
         </div>
       </div>
+
+      {/* Legend */}
+      <MapLegend activeFilters={activeFilters} onToggleFilter={toggleFilter} />
+
+      {/* Timeline slider */}
+      <TimelineSlider events={events} onRangeChange={setTimeRange} />
 
       <div ref={mapRef} className="h-full w-full" />
     </div>

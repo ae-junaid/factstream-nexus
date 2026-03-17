@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
-import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG } from '@/data/mockData';
+import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG, EventType } from '@/data/mockData';
 import { motion } from 'framer-motion';
-import { Loader2, ChevronsDown } from 'lucide-react';
+import { Loader2, ChevronsDown, ExternalLink, MapPin, Plane, Crosshair, Rocket, Shield, Heart, Anchor, Wifi, FileText } from 'lucide-react';
 
 const colorMap: Record<string, string> = {
   'ops-red': 'text-ops-red border-ops-red bg-ops-red/10',
@@ -26,23 +26,36 @@ const dotColor: Record<string, string> = {
   'ops-cyan': 'bg-ops-cyan',
 };
 
+const eventIcons: Record<EventType, React.ElementType> = {
+  airstrike: Plane,
+  ground_operation: Crosshair,
+  rocket_attack: Rocket,
+  diplomatic: Shield,
+  humanitarian: Heart,
+  naval: Anchor,
+  cyber: Wifi,
+  general: FileText,
+};
+
 interface EventTimelineProps {
   events: ConflictEvent[];
   onEventSelect?: (event: ConflictEvent) => void;
+  onEventHover?: (eventId: string | null) => void;
+  highlightedEventId?: string | null;
   loading?: boolean;
 }
 
-export default function EventTimeline({ events, onEventSelect, loading }: EventTimelineProps) {
-  const formatTime = (ts: string) => {
-    try {
-      const d = new Date(ts);
-      if (isNaN(d.getTime())) return '--:--';
-      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    } catch {
-      return '--:--';
-    }
-  };
+function timeAgo(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
+export default function EventTimeline({ events, onEventSelect, onEventHover, highlightedEventId, loading }: EventTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = useCallback(() => {
@@ -55,7 +68,7 @@ export default function EventTimeline({ events, onEventSelect, loading }: EventT
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <h2 className="text-[11px] font-bold tracking-widest text-primary glow-text-cyan">EVENT TIMELINE</h2>
+        <h2 className="text-[11px] font-bold tracking-widest text-primary glow-text-cyan">NEWS LIVE</h2>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">
             {loading ? 'Loading...' : `${events.length} events`}
@@ -66,7 +79,7 @@ export default function EventTimeline({ events, onEventSelect, loading }: EventT
         </div>
       </div>
       <div className="scroll-fade-container flex-1 overflow-hidden">
-        <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto p-2 space-y-1">
+        <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
@@ -82,42 +95,69 @@ export default function EventTimeline({ events, onEventSelect, loading }: EventT
             const credConfig = CREDIBILITY_CONFIG[event.credibility] || { label: 'UNCONFIRMED', color: 'ops-amber' };
             const colors = colorMap[typeConfig.color] || colorMap['ops-cyan'];
             const dot = dotColor[typeConfig.color] || dotColor['ops-cyan'];
+            const Icon = eventIcons[event.type] || FileText;
+            const isHighlighted = highlightedEventId === event.id;
 
             return (
-              <motion.button
+              <motion.div
                 key={event.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
+                transition={{ delay: i * 0.02 }}
+                onMouseEnter={() => onEventHover?.(event.id)}
+                onMouseLeave={() => onEventHover?.(null)}
                 onClick={() => onEventSelect?.(event)}
-                className="w-full text-left p-2 rounded border border-border/50 hover:border-primary/30 hover:bg-secondary/50 transition-all group"
+                className={`cursor-pointer border-b border-border/50 transition-all ${
+                  isHighlighted
+                    ? 'bg-primary/10 border-l-2 border-l-primary'
+                    : 'hover:bg-secondary/40 border-l-2 border-l-transparent'
+                }`}
               >
-                <div className="flex items-start gap-2">
-                  <div className="flex flex-col items-center gap-1 pt-0.5">
-                    <div className={`w-2 h-2 rounded-full ${dot} ${i === 0 ? 'pulse-dot' : ''}`} />
-                    {i < events.length - 1 && <div className="w-px h-6 bg-border" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="px-3 py-2.5">
+                  {/* Time + Source row */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-3.5 h-3.5 ${credTextColor[typeConfig.color] || 'text-muted-foreground'}`} />
                       <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border ${colors}`}>
                         {typeConfig.label}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{formatTime(event.timestamp)}</span>
-                      <span className={`text-[9px] tracking-wider font-medium ${credTextColor[credConfig.color] || 'text-muted-foreground'}`}>
-                        {credConfig.label}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {timeAgo(event.timestamp)}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <p className={`text-xs leading-snug font-medium transition-colors ${
+                    isHighlighted ? 'text-primary' : 'text-foreground/90'
+                  }`}>
+                    {event.title}
+                  </p>
+
+                  {/* Location + Source + Credibility */}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <MapPin className="w-2.5 h-2.5" />
+                      {event.location.name}
+                    </span>
+                    <span className="text-muted-foreground/30">·</span>
+                    <span className="text-[10px] text-muted-foreground">{event.source}</span>
+                    <span className={`text-[9px] tracking-wider font-medium ml-auto ${credTextColor[credConfig.color] || 'text-muted-foreground'}`}>
+                      {credConfig.label}
+                    </span>
+                  </div>
+
+                  {/* Casualties if any */}
+                  {event.casualties && (
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <span className="text-[9px] text-ops-red font-medium">
+                        ⚠ {event.casualties.reported} casualties reported
+                        {!event.casualties.verified && ' (unverified)'}
                       </span>
                     </div>
-                    <p className="text-xs text-foreground mt-1 leading-snug group-hover:text-primary transition-colors truncate">
-                      {event.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-muted-foreground truncate">{event.location.name}</span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-[10px] text-muted-foreground">{event.source}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </motion.button>
+              </motion.div>
             );
           })
         )}
