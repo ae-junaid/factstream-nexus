@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ConflictEvent, EVENT_TYPE_CONFIG, CREDIBILITY_CONFIG, EventType } from '@/data/mockData';
@@ -36,13 +36,13 @@ export default function UnifiedMap({ events, onEventSelect, conflict, highlighte
   const toggleFilter = useCallback((type: EventType) => {
     setActiveFilters(prev => {
       if (!prev) {
-        // First click: show only this type
+        // First click: hide this type, show all others
         const allTypes = Object.keys(EVENT_TYPE_CONFIG) as EventType[];
         return allTypes.filter(t => t !== type);
       }
       if (prev.includes(type)) {
         const next = prev.filter(t => t !== type);
-        return next.length === 0 ? undefined : next; // if nothing filtered, show all
+        return next.length === 0 ? undefined : next;
       }
       const next = [...prev, type];
       if (next.length === Object.keys(EVENT_TYPE_CONFIG).length) return undefined;
@@ -97,15 +97,17 @@ export default function UnifiedMap({ events, onEventSelect, conflict, highlighte
     }
   }, [conflict.id]);
 
-  // Filter events by type and time
-  const filteredEvents = events.filter(event => {
-    if (activeFilters && !activeFilters.includes(event.type)) return false;
-    if (timeRange) {
-      const t = new Date(event.timestamp).getTime();
-      if (t < timeRange[0].getTime() || t > timeRange[1].getTime()) return false;
-    }
-    return true;
-  });
+  // Memoize filtered events to prevent infinite re-render loops
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      if (activeFilters && !activeFilters.includes(event.type)) return false;
+      if (timeRange) {
+        const t = new Date(event.timestamp).getTime();
+        if (t < timeRange[0].getTime() || t > timeRange[1].getTime()) return false;
+      }
+      return true;
+    });
+  }, [events, activeFilters, timeRange]);
 
   // Event markers
   useEffect(() => {
@@ -174,6 +176,9 @@ export default function UnifiedMap({ events, onEventSelect, conflict, highlighte
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  const filteredCount = filteredEvents.length;
+  const totalCount = events.length;
+
   return (
     <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded border border-border ${isFullscreen ? 'bg-background' : ''}`}>
       {/* HUD corners */}
@@ -187,7 +192,7 @@ export default function UnifiedMap({ events, onEventSelect, conflict, highlighte
         <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-border rounded px-2 py-1">
           <Crosshair className="w-3 h-3 text-primary" />
           <span className="text-[10px] font-bold tracking-wider text-primary">
-            {filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ''} EVENTS
+            {filteredCount}{filteredCount !== totalCount ? `/${totalCount}` : ''} EVENTS
           </span>
         </div>
       </div>
