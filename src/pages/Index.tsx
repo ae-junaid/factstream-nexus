@@ -15,10 +15,20 @@ import { ConflictEvent } from '@/data/mockData';
 
 function DashboardContent() {
   const [selectedEvent, setSelectedEvent] = useState<ConflictEvent | null>(null);
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
   const { selectedConflict } = useConflict();
 
   const { news, loading: newsLoading } = useGdeltNews(selectedConflict);
   const { events, loading: eventsLoading } = useGdeltEvents(selectedConflict);
+
+  const handleEventSelect = (event: ConflictEvent) => {
+    setSelectedEvent(event);
+    setHighlightedEventId(event.id);
+  };
+
+  const handleEventHover = (eventId: string | null) => {
+    setHighlightedEventId(eventId);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -36,7 +46,13 @@ function DashboardContent() {
           {/* LEFT — Event Timeline */}
           <div className="lg:col-span-3 flex flex-col min-h-[300px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-border bg-card">
             <div className="flex-1 overflow-hidden">
-              <EventTimeline events={events} onEventSelect={setSelectedEvent} loading={eventsLoading} />
+              <EventTimeline
+                events={events}
+                onEventSelect={handleEventSelect}
+                onEventHover={handleEventHover}
+                highlightedEventId={highlightedEventId}
+                loading={eventsLoading}
+              />
             </div>
           </div>
 
@@ -46,7 +62,12 @@ function DashboardContent() {
               <MediaCarousel news={news} />
             </div>
             <div className="relative min-h-0" style={{ flex: '3 1 0%' }}>
-              <UnifiedMap events={events} onEventSelect={setSelectedEvent} conflict={selectedConflict} />
+              <UnifiedMap
+                events={events}
+                onEventSelect={handleEventSelect}
+                conflict={selectedConflict}
+                highlightedEventId={highlightedEventId}
+              />
               <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
             </div>
           </div>
